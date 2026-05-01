@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+git diff --cached --name-status --diff-filter=ACMRD | .githooks/lib/refresh-codex-artifacts
+
+if git ls-files --error-unmatch dist/codex >/dev/null 2>&1; then
+  git add dist/codex
+fi

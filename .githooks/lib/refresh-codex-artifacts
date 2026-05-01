@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+cd "$REPO_ROOT"
+
+matches_codex_source() {
+  local path="$1"
+
+  case "$path" in
+    agents/*|skills/*|build.sh|bin/lib/frontmatter.sh)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+matches_installed_entrypoint() {
+  local path="$1"
+
+  case "$path" in
+    agents/*/AGENT.md|skills/*/SKILL.md)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+needs_refresh=false
+needs_install_hint=false
+
+while IFS=$'\t' read -r status path extra_path; do
+  [[ -n "${status:-}" ]] || continue
+
+  if [[ -z "${path:-}" ]]; then
+    path="$status"
+    status=""
+  fi
+
+  final_path="${extra_path:-$path}"
+
+  if matches_codex_source "$path" || matches_codex_source "$final_path"; then
+    needs_refresh=true
+  fi
+
+  case "$status" in
+    A|D|R*|C*)
+      if matches_installed_entrypoint "$path" || matches_installed_entrypoint "$final_path"; then
+        needs_install_hint=true
+      fi
+      ;;
+  esac
+done
+
+if ! $needs_refresh; then
+  exit 0
+fi
+
+echo "blaude-bode: refreshing generated Codex artifacts"
+./build.sh >/dev/null
+echo "blaude-bode: Codex artifacts refreshed"
+
+if $needs_install_hint; then
+  echo "blaude-bode: agent or skill entrypoints changed; run ./install.sh --host codex to refresh local symlinks"
+fi

@@ -23,6 +23,9 @@ Keep your [bool](https://www.youtube.com/shorts/V9oO2JparNI).
 # Rebuild Codex output after editing skill bodies
 ./build.sh
 
+# Optionally auto-refresh Codex output from git hooks
+./bin/install-git-hooks
+
 # Run Codex build/install regression checks
 ./test.sh
 ```
@@ -48,6 +51,7 @@ Skills and agents are directory-scoped markdown sources. Each canonical source f
 - **Claude Code** gets source symlinks. Skills install as directory symlinks; agents install as markdown file symlinks.
 - **Codex** gets generated artifacts. `build.sh` parses frontmatter, preserves hook intent as manual parity notes, mirrors supporting files, and generates `dist/codex/skills/<name>/SKILL.md` plus `dist/codex/agents/*.toml`.
 - **Install** symlinks generated Codex skills into `~/.codex/skills/`, generated Codex agents into `~/.codex/agents/`, and canonical source content into `~/.claude/`.
+- **Git hooks** are opt-in. `./bin/install-git-hooks` sets `core.hooksPath=.githooks` so staged canonical edits refresh generated Codex artifacts before commit, and branch changes refresh them after checkout or merge.
 
 ---
 
@@ -181,6 +185,8 @@ The intended authoring model is:
 5. Run `./install.sh` once to create the Claude symlink and refresh Codex output if needed.
 6. Edit the skill body freely. Claude picks up changes immediately via symlink. For Codex, re-run `./build.sh`.
 
+If git hooks are installed with `./bin/install-git-hooks`, staged changes under `skills/` automatically run `./build.sh` before commit. Adding, removing, or renaming a skill still requires `./install.sh --host codex` once so local Codex symlinks are refreshed.
+
 ### Skills with supporting files
 
 Some skills need additional files (reference docs, scripts, etc.) alongside `SKILL.md`. Put everything in the same source directory:
@@ -207,6 +213,25 @@ Codex mirrors the same support files into `dist/codex/skills/[name]/`, then inst
 4. Run `./build.sh` to generate the Codex TOML in `dist/codex/agents/`.
 5. Run `./install.sh` once to create symlinks for both Claude and Codex.
 6. Edit the agent body freely. Claude picks it up immediately. For Codex, re-run `./build.sh`.
+
+If git hooks are installed with `./bin/install-git-hooks`, staged changes under `agents/` automatically run `./build.sh` before commit. Adding, removing, or renaming an agent still requires `./install.sh --host codex` once so local Codex symlinks are refreshed.
+
+---
+
+## Git hooks
+
+Run this once per clone to enable repo-local hooks:
+
+```bash
+./bin/install-git-hooks
+```
+
+The tracked hooks do three things:
+- `pre-commit` runs `./build.sh` when staged changes touch `skills/`, `agents/`, `build.sh`, or `bin/lib/frontmatter.sh`.
+- `post-checkout` and `post-merge` run `./build.sh` when branch changes touch those same paths.
+- When a `SKILL.md` or `AGENT.md` entrypoint is added, removed, or renamed, the hook prints a reminder to run `./install.sh --host codex`.
+
+These hooks keep generated Codex artifacts fresh for installed symlinks. They do not make a running Codex or Claude session hot-reload its available skills or subagents.
 
 ---
 

@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+old_ref="${1:-}"
+new_ref="${2:-}"
+
+if [[ -z "$old_ref" || -z "$new_ref" || "$old_ref" =~ ^0+$ ]]; then
+  exit 0
+fi
+
+git diff --name-status "$old_ref" "$new_ref" | .githooks/lib/refresh-codex-artifacts

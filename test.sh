@@ -123,6 +123,26 @@ assert_equals \
 
 assert_codex_agents_exposed "$clean_home"
 
+hook_repo_parent="$(mktemp -d /tmp/blaude-bode-test-hooks.XXXXXX)"
+cleanup_paths+=("$hook_repo_parent")
+hook_repo="$hook_repo_parent/repo"
+mkdir -p "$hook_repo"
+cp -R AGENTS.md build.sh bin skills agents .githooks "$hook_repo/"
+
+(
+  cd "$hook_repo"
+  git init -q
+  ./bin/install-git-hooks >/dev/null
+  assert_equals "$(git config --get core.hooksPath)" ".githooks" "git hooks path"
+
+  git add AGENTS.md build.sh bin skills agents .githooks
+  printf "\nHook test marker.\n" >> agents/git-best-practices-agent/AGENT.md
+  git add agents/git-best-practices-agent/AGENT.md
+  ./.githooks/pre-commit >/dev/null
+)
+
+assert_contains "$hook_repo/dist/codex/agents/git-best-practices-agent.toml" "Hook test marker."
+
 claude_home="$(mktemp -d /tmp/blaude-bode-test-claude.XXXXXX)"
 cleanup_paths+=("$claude_home")
 HOME="$claude_home" ./install.sh --host claude >/dev/null

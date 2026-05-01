@@ -7,6 +7,7 @@ This repo is the source of truth for shared Claude/Codex skills and subagents.
 - Run `./build.sh` after changing skill or agent bodies so Codex artifacts stay current.
 - Run `./install.sh --host claude` or `./install.sh --host codex` to refresh local symlinks after adding or removing files.
 - Run `./test.sh` when changing source layout, build logic, or install behavior.
+- Run `./bin/install-git-hooks` once per clone if you want staged canonical edits to auto-run `./build.sh` before commit.
 
 ## Skills
 
@@ -31,6 +32,7 @@ This repo is the source of truth for shared Claude/Codex skills and subagents.
 - `skills/`: canonical shared skill definitions
 - `agents/`: canonical shared agent definitions
 - `bin/`: reusable shell helpers installed into `~/.local/bin`
+- `.githooks/`: optional repo-local git hooks for refreshing generated Codex artifacts
 - `dist/codex/`: generated Codex artifacts only
 
 ## Editing expectations
