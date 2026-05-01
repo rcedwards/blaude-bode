@@ -334,3 +334,29 @@ require_field() {
     exit 1
   fi
 }
+
+frontmatter_validate_excluded_hosts() {
+  local file="$1" excluded_host
+
+  while IFS= read -r excluded_host; do
+    [[ -z "$excluded_host" ]] && continue
+
+    case "$excluded_host" in
+      claude | codex) ;;
+      *)
+        echo "ERROR: invalid excluded_hosts value '$excluded_host' in $file (valid: claude, codex)" >&2
+        return 1
+        ;;
+    esac
+  done < <(frontmatter_get_list "$file" "excluded_hosts")
+}
+
+frontmatter_host_is_excluded() {
+  local file="$1" host="$2" excluded_host
+
+  while IFS= read -r excluded_host; do
+    [[ "$excluded_host" == "$host" ]] && return 0
+  done < <(frontmatter_get_list "$file" "excluded_hosts")
+
+  return 1
+}

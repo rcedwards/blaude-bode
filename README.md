@@ -65,6 +65,10 @@ Canonical location: `skills/[name]/SKILL.md`
 name: skill-name
 description: One-line description of when to use this skill.
 
+# OPTIONAL - omit for all hosts
+excluded_hosts:
+  - claude
+
 # CLAUDE-ONLY - stripped before Codex sees the file
 allowed-tools:
   - Bash
@@ -81,7 +85,7 @@ hooks:
     echo "running after skill"
 ---
 
-Skill body starts here. This exact content appears in both Claude and Codex.
+Skill body starts here. This exact content appears in every non-excluded host.
 Write instructions in plain markdown. No frontmatter syntax here.
 ```
 
@@ -91,6 +95,7 @@ Write instructions in plain markdown. No frontmatter syntax here.
 |---|---|---|---|---|
 | `name` | yes | yes | yes | Used as the skill identifier in both tools; keep `skills/[name]/` aligned with it |
 | `description` | yes | yes | yes | Shown in each host's skill picker/listing |
+| `excluded_hosts` | no | controls install | controls generation | YAML list of hosts to hide from. Valid values: `claude`, `codex`. Omit for all hosts |
 | `allowed-tools` | no | yes | no | Pre-approves tools; omit to allow all |
 | `requires` | no | yes | no | Warns at install if tool not on PATH |
 | `hooks.pre-invoke` | no | yes | manual parity note | Shell run before skill executes in Claude; emitted as a manual note for Codex |
@@ -115,6 +120,10 @@ Agents are specialized subprocesses with their own system prompt and model setti
 name: swift-testing-agent
 description: When to spawn this agent. Used by Claude's /agents picker and Codex invocation.
 
+# OPTIONAL - omit for all hosts
+excluded_hosts:
+  - codex
+
 # Claude-only (Claude ignores unknown fields like codex:)
 model: claude-sonnet-4-6
 tools:
@@ -133,7 +142,7 @@ codex:
     - Audit
 ---
 
-Agent system prompt here. Shared verbatim between Claude and Codex.
+Agent system prompt here. Shared verbatim between every non-excluded host.
 Write instructions in plain markdown.
 ```
 
@@ -143,6 +152,7 @@ Write instructions in plain markdown.
 |---|---|---|---|---|
 | `name` | yes | yes | yes | Used as identifier in both tools |
 | `description` | yes | yes | yes | Shown in Claude picker; used by Codex for agent selection |
+| `excluded_hosts` | no | controls install | controls generation | YAML list of hosts to hide from. Valid values: `claude`, `codex`. Omit for all hosts |
 | `model` | no | yes | no | Claude model ID; Codex model goes in `codex.model` |
 | `tools` | no | yes | no | Pre-approved tools for Claude |
 | `codex.model` | no | no | yes | Codex model ID |
@@ -172,7 +182,8 @@ The intended authoring model is:
 1. Put shared behavior in the markdown body.
 2. Put Claude runtime controls in frontmatter.
 3. Put Codex runtime controls under `codex:`.
-4. Let `build.sh` translate source files instead of forking separate host-specific copies.
+4. Use `excluded_hosts` only when a source entry should be hidden from one host.
+5. Let `build.sh` translate source files instead of forking separate host-specific copies.
 
 ---
 

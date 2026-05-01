@@ -119,6 +119,12 @@ install_claude() {
 
     skill_name="$(frontmatter_get "$skill_file" "name")"
     require_field "$skill_file" "name" "$skill_name"
+    frontmatter_validate_excluded_hosts "$skill_file"
+
+    if frontmatter_host_is_excluded "$skill_file" "claude"; then
+      continue
+    fi
+
     target="$skills_base/$skill_name"
 
     symlink_into_place "$skill_dir" "$target" "claude/skill"
@@ -130,9 +136,21 @@ install_claude() {
     [[ -L "$target" ]] || continue
     local resolved_source
     resolved_source="$(readlink "$target")"
-    if [[ "$resolved_source" == "$SKILLS_DIR/"* && ! -e "$resolved_source" ]]; then
-      rm "$target"
-      echo "  [claude/skill] removed stale symlink $(basename "$target")"
+    if [[ "$resolved_source" == "$SKILLS_DIR/"* ]]; then
+      if [[ ! -e "$resolved_source" ]]; then
+        rm "$target"
+        echo "  [claude/skill] removed stale symlink $(basename "$target")"
+        continue
+      fi
+
+      local resolved_skill_file="$resolved_source/SKILL.md"
+      if [[ -f "$resolved_skill_file" ]]; then
+        frontmatter_validate_excluded_hosts "$resolved_skill_file"
+        if frontmatter_host_is_excluded "$resolved_skill_file" "claude"; then
+          rm "$target"
+          echo "  [claude/skill] removed host-excluded symlink $(basename "$target")"
+        fi
+      fi
     fi
   done
 
@@ -143,6 +161,12 @@ install_claude() {
 
     agent_name="$(frontmatter_get "$agent_file" "name")"
     require_field "$agent_file" "name" "$agent_name"
+    frontmatter_validate_excluded_hosts "$agent_file"
+
+    if frontmatter_host_is_excluded "$agent_file" "claude"; then
+      continue
+    fi
+
     target="$agents_base/$agent_name.md"
 
     symlink_into_place "$agent_file" "$target" "claude/agent"
@@ -153,9 +177,20 @@ install_claude() {
     [[ -L "$target" ]] || continue
     local resolved_source
     resolved_source="$(readlink "$target")"
-    if [[ "$resolved_source" == "$AGENTS_DIR/"* && ! -e "$resolved_source" ]]; then
-      rm "$target"
-      echo "  [claude/agent] removed stale symlink $(basename "$target")"
+    if [[ "$resolved_source" == "$AGENTS_DIR/"* ]]; then
+      if [[ ! -e "$resolved_source" ]]; then
+        rm "$target"
+        echo "  [claude/agent] removed stale symlink $(basename "$target")"
+        continue
+      fi
+
+      if [[ -f "$resolved_source" ]]; then
+        frontmatter_validate_excluded_hosts "$resolved_source"
+        if frontmatter_host_is_excluded "$resolved_source" "claude"; then
+          rm "$target"
+          echo "  [claude/agent] removed host-excluded symlink $(basename "$target")"
+        fi
+      fi
     fi
   done
 }

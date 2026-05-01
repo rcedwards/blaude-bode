@@ -1,0 +1,4 @@
+interface:
+  display_name: "Claude Code Consult"
+  short_description: "Get Claude's take on a plan or blocker."
+  default_prompt: "Use $claude-code-consult to review a plan, critique a solution, or help unblock a problem."

@@ -28,6 +28,16 @@ assert_file_exists() {
   [[ -f "$path" ]] || fail "expected file to exist: $path"
 }
 
+assert_file_executable() {
+  local path="$1"
+  [[ -x "$path" ]] || fail "expected file to be executable: $path"
+}
+
+assert_path_absent() {
+  local path="$1"
+  [[ ! -e "$path" && ! -L "$path" ]] || fail "expected path to be absent: $path"
+}
+
 assert_symlink_exists() {
   local path="$1"
   [[ -L "$path" ]] || fail "expected symlink to exist: $path"
@@ -70,9 +80,16 @@ assert_codex_agents_exposed() {
 
     agent_name="$(frontmatter_get "$agent_file" "name")"
     require_field "$agent_file" "name" "$agent_name"
+    frontmatter_validate_excluded_hosts "$agent_file"
 
     generated_agent="$REPO_ROOT/dist/codex/agents/$agent_name.toml"
     installed_agent="$home_dir/.codex/agents/$agent_name.toml"
+
+    if frontmatter_host_is_excluded "$agent_file" "codex"; then
+      assert_path_absent "$generated_agent"
+      assert_path_absent "$installed_agent"
+      continue
+    fi
 
     assert_file_exists "$generated_agent"
     assert_valid_toml_basic_escapes "$generated_agent"
@@ -99,6 +116,13 @@ assert_contains "$mermaid_skill" 'For detailed syntax of each diagram type, see 
 assert_contains "$REPO_ROOT/dist/codex/skills/mermaid-author/references/diagram-types.md" "# Mermaid Diagram Types - Detailed Reference"
 assert_not_contains "$mermaid_skill" "In Codex-generated output"
 
+consult_skill="$REPO_ROOT/dist/codex/skills/claude-code-consult/SKILL.md"
+assert_file_exists "$consult_skill"
+assert_contains "$consult_skill" "name: claude-code-consult"
+assert_contains "$consult_skill" "Use local \`claude\` as an external reviewer after building context in Codex."
+assert_file_exists "$REPO_ROOT/dist/codex/skills/claude-code-consult/agents/openai.yaml"
+assert_file_executable "$REPO_ROOT/dist/codex/skills/claude-code-consult/scripts/claude-code-consult.sh"
+
 for agent_file in "$REPO_ROOT/dist/codex/agents"/*.toml; do
   assert_file_exists "$agent_file"
   assert_valid_toml_basic_escapes "$agent_file"
@@ -120,6 +144,12 @@ assert_equals \
   "$(readlink "$clean_home/.codex/skills/mermaid-author")" \
   "$REPO_ROOT/dist/codex/skills/mermaid-author" \
   "clean codex mermaid-author skill symlink"
+
+assert_symlink_exists "$clean_home/.codex/skills/claude-code-consult"
+assert_equals \
+  "$(readlink "$clean_home/.codex/skills/claude-code-consult")" \
+  "$REPO_ROOT/dist/codex/skills/claude-code-consult" \
+  "clean codex claude-code-consult skill symlink"
 
 assert_codex_agents_exposed "$clean_home"
 
@@ -152,6 +182,7 @@ assert_equals \
   "$(readlink "$claude_home/.claude/skills/mermaid-author")" \
   "$REPO_ROOT/skills/mermaid-author" \
   "clean claude mermaid-author skill symlink"
+assert_path_absent "$claude_home/.claude/skills/claude-code-consult"
 [[ ! -e "$claude_home/.claude/skills/blaude-bode" ]] \
   || fail "clean install should not create legacy blaude-bode nesting"
 assert_symlink_exists "$claude_home/.claude/agents/swift-style-agent.md"
@@ -165,6 +196,7 @@ cleanup_paths+=("$claude_existing_home")
 mkdir -p "$claude_existing_home/.claude/skills/blaude-bode/mermaid-author" "$claude_existing_home/.claude/skills/blaude-bode/review" "$claude_existing_home/.claude/agents"
 ln -s "$REPO_ROOT/skills/mermaid-author/SKILL.md" "$claude_existing_home/.claude/skills/blaude-bode/mermaid-author/SKILL.md"
 ln -s "$REPO_ROOT/skills/review/SKILL.md" "$claude_existing_home/.claude/skills/blaude-bode/review/SKILL.md"
+ln -s "$REPO_ROOT/skills/claude-code-consult" "$claude_existing_home/.claude/skills/claude-code-consult"
 ln -s "$REPO_ROOT/agents/reviewer-agent/AGENT.md" "$claude_existing_home/.claude/agents/reviewer-agent.md"
 ln -s "$REPO_ROOT/agents/reviewer.md" "$claude_existing_home/.claude/agents/reviewer.md"
 
@@ -175,6 +207,8 @@ claude_install_output="$(HOME="$claude_existing_home" ./install.sh --host claude
   || fail "expected migration of legacy managed ~/.claude/skills/blaude-bode/review directory"
 [[ "$claude_install_output" == *"[claude/skill] removed empty legacy blaude-bode directory"* ]] \
   || fail "expected legacy blaude-bode directory to be removed once empty"
+[[ "$claude_install_output" == *"[claude/skill] removed host-excluded symlink claude-code-consult"* ]] \
+  || fail "expected cleanup of Claude symlink for host-excluded skill"
 [[ "$claude_install_output" == *"[claude/agent] removed stale symlink reviewer-agent.md"* ]] \
   || fail "expected cleanup of stale ~/.claude/agents/reviewer-agent.md symlink after agent removal"
 [[ "$claude_install_output" == *"[claude/agent] removed stale symlink reviewer.md"* ]] \
@@ -186,6 +220,7 @@ assert_equals \
   "migrated claude mermaid-author skill symlink points to source"
 [[ ! -e "$claude_existing_home/.claude/skills/blaude-bode" ]] \
   || fail "expected legacy ~/.claude/skills/blaude-bode directory to be removed"
+assert_path_absent "$claude_existing_home/.claude/skills/claude-code-consult"
 [[ ! -e "$claude_existing_home/.claude/agents/reviewer-agent.md" ]] \
   || fail "expected stale ~/.claude/agents/reviewer-agent.md symlink to be removed"
 [[ ! -e "$claude_existing_home/.claude/agents/reviewer.md" ]] \

@@ -119,6 +119,12 @@ build_skills() {
     require_field "$skill_file" "name" "$skill_name"
     require_field "$skill_file" "description" "$description"
     validate_source_dirname "$skill_dir" "$skill_name" "skill"
+    frontmatter_validate_excluded_hosts "$skill_file"
+
+    if frontmatter_host_is_excluded "$skill_file" "codex"; then
+      echo "  skill: $skill_name skipped for codex"
+      continue
+    fi
 
     out_dir="$skills_dist/$skill_name"
     out_file="$out_dir/SKILL.md"
@@ -170,6 +176,12 @@ build_agents() {
     require_field "$agent_file" "description" "$description"
     validate_source_dirname "$agent_dir" "$name" "agent"
     validate_agent_name "$agent_file" "$name"
+    frontmatter_validate_excluded_hosts "$agent_file"
+
+    if frontmatter_host_is_excluded "$agent_file" "codex"; then
+      echo "  agent: $name skipped for codex"
+      continue
+    fi
 
     model="$(frontmatter_get "$agent_file" "codex.model")"
     reasoning="$(frontmatter_get "$agent_file" "codex.model_reasoning_effort")"
