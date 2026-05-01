@@ -287,3 +287,7 @@ Hooks have access to the shell environment. They do not receive skill arguments.
 ## Example sources
 
 See [skills/mermaid-author/SKILL.md](skills/mermaid-author/SKILL.md) for a skill with supporting reference files, and [agents/swift-testing-agent/AGENT.md](agents/swift-testing-agent/AGENT.md) for a shared Claude/Codex agent source.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
