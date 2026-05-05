@@ -4,6 +4,8 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILLS_DIR="$REPO_ROOT/skills"
 AGENTS_DIR="$REPO_ROOT/agents"
+SKILLS_ROOTS=("$SKILLS_DIR" "$REPO_ROOT/private/skills")
+AGENTS_ROOTS=("$AGENTS_DIR" "$REPO_ROOT/private/agents")
 BIN_DIR="$REPO_ROOT/bin"
 
 source "$REPO_ROOT/bin/lib/frontmatter.sh"
@@ -105,38 +107,41 @@ migrate_legacy_blaude_bode_dir() {
 install_claude() {
   local skills_base="$HOME/.claude/skills"
   local agents_base="$HOME/.claude/agents"
-  local skill_dir skill_file skill_name target
+  local skills_root agents_root skill_dir skill_file skill_name target
   local agent_dir agent_file agent_name
 
   mkdir -p "$skills_base" "$agents_base"
 
   migrate_legacy_blaude_bode_dir
 
-  for skill_dir in "$SKILLS_DIR"/*; do
-    [[ -d "$skill_dir" ]] || continue
-    skill_file="$skill_dir/SKILL.md"
-    [[ -f "$skill_file" ]] || continue
+  for skills_root in "${SKILLS_ROOTS[@]}"; do
+    [[ -d "$skills_root" ]] || continue
+    for skill_dir in "$skills_root"/*; do
+      [[ -d "$skill_dir" ]] || continue
+      skill_file="$skill_dir/SKILL.md"
+      [[ -f "$skill_file" ]] || continue
 
-    skill_name="$(frontmatter_get "$skill_file" "name")"
-    require_field "$skill_file" "name" "$skill_name"
-    frontmatter_validate_excluded_hosts "$skill_file"
+      skill_name="$(frontmatter_get "$skill_file" "name")"
+      require_field "$skill_file" "name" "$skill_name"
+      frontmatter_validate_excluded_hosts "$skill_file"
 
-    if frontmatter_host_is_excluded "$skill_file" "claude"; then
-      continue
-    fi
+      if frontmatter_host_is_excluded "$skill_file" "claude"; then
+        continue
+      fi
 
-    target="$skills_base/$skill_name"
+      target="$skills_base/$skill_name"
 
-    symlink_into_place "$skill_dir" "$target" "claude/skill"
-    echo "  [claude/skill] $skill_name -> $target"
-    check_requires "$skill_file"
+      symlink_into_place "$skill_dir" "$target" "claude/skill"
+      echo "  [claude/skill] $skill_name -> $target"
+      check_requires "$skill_file"
+    done
   done
 
   for target in "$skills_base"/*; do
     [[ -L "$target" ]] || continue
     local resolved_source
     resolved_source="$(readlink "$target")"
-    if [[ "$resolved_source" == "$SKILLS_DIR/"* ]]; then
+    if [[ "$resolved_source" == "$REPO_ROOT/"* ]]; then
       if [[ ! -e "$resolved_source" ]]; then
         rm "$target"
         echo "  [claude/skill] removed stale symlink $(basename "$target")"
@@ -154,30 +159,33 @@ install_claude() {
     fi
   done
 
-  for agent_dir in "$AGENTS_DIR"/*; do
-    [[ -d "$agent_dir" ]] || continue
-    agent_file="$agent_dir/AGENT.md"
-    [[ -f "$agent_file" ]] || continue
+  for agents_root in "${AGENTS_ROOTS[@]}"; do
+    [[ -d "$agents_root" ]] || continue
+    for agent_dir in "$agents_root"/*; do
+      [[ -d "$agent_dir" ]] || continue
+      agent_file="$agent_dir/AGENT.md"
+      [[ -f "$agent_file" ]] || continue
 
-    agent_name="$(frontmatter_get "$agent_file" "name")"
-    require_field "$agent_file" "name" "$agent_name"
-    frontmatter_validate_excluded_hosts "$agent_file"
+      agent_name="$(frontmatter_get "$agent_file" "name")"
+      require_field "$agent_file" "name" "$agent_name"
+      frontmatter_validate_excluded_hosts "$agent_file"
 
-    if frontmatter_host_is_excluded "$agent_file" "claude"; then
-      continue
-    fi
+      if frontmatter_host_is_excluded "$agent_file" "claude"; then
+        continue
+      fi
 
-    target="$agents_base/$agent_name.md"
+      target="$agents_base/$agent_name.md"
 
-    symlink_into_place "$agent_file" "$target" "claude/agent"
-    echo "  [claude/agent] $agent_name -> $target"
+      symlink_into_place "$agent_file" "$target" "claude/agent"
+      echo "  [claude/agent] $agent_name -> $target"
+    done
   done
 
   for target in "$agents_base"/*.md; do
     [[ -L "$target" ]] || continue
     local resolved_source
     resolved_source="$(readlink "$target")"
-    if [[ "$resolved_source" == "$AGENTS_DIR/"* ]]; then
+    if [[ "$resolved_source" == "$REPO_ROOT/"* ]]; then
       if [[ ! -e "$resolved_source" ]]; then
         rm "$target"
         echo "  [claude/agent] removed stale symlink $(basename "$target")"

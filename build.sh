@@ -2,8 +2,8 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SKILLS_DIR="$REPO_ROOT/skills"
-AGENTS_DIR="$REPO_ROOT/agents"
+SKILLS_ROOTS=("$REPO_ROOT/skills" "$REPO_ROOT/private/skills")
+AGENTS_ROOTS=("$REPO_ROOT/agents" "$REPO_ROOT/private/agents")
 DIST_CODEX="$REPO_ROOT/dist/codex"
 
 source "$REPO_ROOT/bin/lib/frontmatter.sh"
@@ -104,48 +104,51 @@ build_skills() {
   mkdir -p "$skills_dist"
 
   local count=0
-  local skill_dir skill_file skill_name description pre_hook post_hook out_dir out_file
+  local skills_root skill_dir skill_file skill_name description pre_hook post_hook out_dir out_file
 
-  for skill_dir in "$SKILLS_DIR"/*; do
-    [[ -d "$skill_dir" ]] || continue
-    skill_file="$skill_dir/SKILL.md"
-    [[ -f "$skill_file" ]] || continue
+  for skills_root in "${SKILLS_ROOTS[@]}"; do
+    [[ -d "$skills_root" ]] || continue
+    for skill_dir in "$skills_root"/*; do
+      [[ -d "$skill_dir" ]] || continue
+      skill_file="$skill_dir/SKILL.md"
+      [[ -f "$skill_file" ]] || continue
 
-    skill_name="$(frontmatter_get "$skill_file" "name")"
-    description="$(frontmatter_get "$skill_file" "description")"
-    pre_hook="$(frontmatter_get "$skill_file" "hooks.pre-invoke")"
-    post_hook="$(frontmatter_get "$skill_file" "hooks.post-invoke")"
+      skill_name="$(frontmatter_get "$skill_file" "name")"
+      description="$(frontmatter_get "$skill_file" "description")"
+      pre_hook="$(frontmatter_get "$skill_file" "hooks.pre-invoke")"
+      post_hook="$(frontmatter_get "$skill_file" "hooks.post-invoke")"
 
-    require_field "$skill_file" "name" "$skill_name"
-    require_field "$skill_file" "description" "$description"
-    validate_source_dirname "$skill_dir" "$skill_name" "skill"
-    frontmatter_validate_excluded_hosts "$skill_file"
+      require_field "$skill_file" "name" "$skill_name"
+      require_field "$skill_file" "description" "$description"
+      validate_source_dirname "$skill_dir" "$skill_name" "skill"
+      frontmatter_validate_excluded_hosts "$skill_file"
 
-    if frontmatter_host_is_excluded "$skill_file" "codex"; then
-      echo "  skill: $skill_name skipped for codex"
-      continue
-    fi
+      if frontmatter_host_is_excluded "$skill_file" "codex"; then
+        echo "  skill: $skill_name skipped for codex"
+        continue
+      fi
 
-    out_dir="$skills_dist/$skill_name"
-    out_file="$out_dir/SKILL.md"
-    mkdir -p "$out_dir"
+      out_dir="$skills_dist/$skill_name"
+      out_file="$out_dir/SKILL.md"
+      mkdir -p "$out_dir"
 
-    {
-      echo "---"
-      echo "name: $skill_name"
-      printf 'description: "%s"\n' "$(printf '%s' "$description" | escape_yaml_double_quoted)"
-      echo "---"
-      echo ""
-      append_hook_note /dev/stdout "Before running this skill, run:" "$pre_hook"
-      frontmatter_body "$skill_file"
-      echo ""
-      append_hook_note /dev/stdout "After running this skill, run:" "$post_hook"
-    } > "$out_file"
+      {
+        echo "---"
+        echo "name: $skill_name"
+        printf 'description: "%s"\n' "$(printf '%s' "$description" | escape_yaml_double_quoted)"
+        echo "---"
+        echo ""
+        append_hook_note /dev/stdout "Before running this skill, run:" "$pre_hook"
+        frontmatter_body "$skill_file"
+        echo ""
+        append_hook_note /dev/stdout "After running this skill, run:" "$post_hook"
+      } > "$out_file"
 
-    copy_supporting_files "$skill_dir" "$out_dir" "SKILL.md"
+      copy_supporting_files "$skill_dir" "$out_dir" "SKILL.md"
 
-    count=$((count + 1))
-    echo "  skill: $skill_name -> $out_file"
+      count=$((count + 1))
+      echo "  skill: $skill_name -> $out_file"
+    done
   done
 
   echo "  skills: $count directory/directories"
@@ -153,69 +156,73 @@ build_skills() {
 
 build_agents() {
   local count=0
-  local agent_dir agent_file name description body model reasoning sandbox toml_file
+  local agents_root agent_dir agent_file name description body model reasoning sandbox toml_file rel_source
   local nickname_candidates=()
   local escaped_name escaped_description escaped_model escaped_reasoning escaped_sandbox
 
   rm -f "$DIST_CODEX/agents"/*.toml
 
-  for agent_dir in "$AGENTS_DIR"/*; do
-    [[ -d "$agent_dir" ]] || continue
-    agent_file="$agent_dir/AGENT.md"
-    [[ -f "$agent_file" ]] || continue
+  for agents_root in "${AGENTS_ROOTS[@]}"; do
+    [[ -d "$agents_root" ]] || continue
+    for agent_dir in "$agents_root"/*; do
+      [[ -d "$agent_dir" ]] || continue
+      agent_file="$agent_dir/AGENT.md"
+      [[ -f "$agent_file" ]] || continue
 
-    name="$(frontmatter_get "$agent_file" "name")"
-    description="$(frontmatter_get "$agent_file" "description")"
-    body="$(frontmatter_body "$agent_file")"
-    nickname_candidates=()
-    while IFS= read -r nickname_candidate; do
-      nickname_candidates+=("$nickname_candidate")
-    done < <(frontmatter_get_list "$agent_file" "codex.nickname_candidates")
+      name="$(frontmatter_get "$agent_file" "name")"
+      description="$(frontmatter_get "$agent_file" "description")"
+      body="$(frontmatter_body "$agent_file")"
+      nickname_candidates=()
+      while IFS= read -r nickname_candidate; do
+        nickname_candidates+=("$nickname_candidate")
+      done < <(frontmatter_get_list "$agent_file" "codex.nickname_candidates")
 
-    require_field "$agent_file" "name" "$name"
-    require_field "$agent_file" "description" "$description"
-    validate_source_dirname "$agent_dir" "$name" "agent"
-    validate_agent_name "$agent_file" "$name"
-    frontmatter_validate_excluded_hosts "$agent_file"
+      require_field "$agent_file" "name" "$name"
+      require_field "$agent_file" "description" "$description"
+      validate_source_dirname "$agent_dir" "$name" "agent"
+      validate_agent_name "$agent_file" "$name"
+      frontmatter_validate_excluded_hosts "$agent_file"
 
-    if frontmatter_host_is_excluded "$agent_file" "codex"; then
-      echo "  agent: $name skipped for codex"
-      continue
-    fi
-
-    model="$(frontmatter_get "$agent_file" "codex.model")"
-    reasoning="$(frontmatter_get "$agent_file" "codex.model_reasoning_effort")"
-    sandbox="$(frontmatter_get "$agent_file" "codex.sandbox_mode")"
-
-    toml_file="$DIST_CODEX/agents/$name.toml"
-    escaped_name="$(printf '%s' "$name" | escape_toml_basic)"
-    escaped_description="$(printf '%s' "$description" | escape_toml_basic)"
-    escaped_model="$(printf '%s' "$model" | escape_toml_basic)"
-    escaped_reasoning="$(printf '%s' "$reasoning" | escape_toml_basic)"
-    escaped_sandbox="$(printf '%s' "$sandbox" | escape_toml_basic)"
-
-    {
-      echo "# Auto-generated by build.sh - do not edit directly"
-      echo "# Source: agents/$name/AGENT.md"
-      echo ""
-      echo "name = \"$escaped_name\""
-      echo "description = \"$escaped_description\""
-      [[ -n "$model" ]] && echo "model = \"$escaped_model\""
-      [[ -n "$reasoning" ]] && echo "model_reasoning_effort = \"$escaped_reasoning\""
-      [[ -n "$sandbox" ]] && echo "sandbox_mode = \"$escaped_sandbox\""
-      if (( ${#nickname_candidates[@]} > 0 )); then
-        printf 'nickname_candidates = '
-        emit_toml_string_array "${nickname_candidates[@]}"
-        printf '\n'
+      if frontmatter_host_is_excluded "$agent_file" "codex"; then
+        echo "  agent: $name skipped for codex"
+        continue
       fi
-      echo ""
-      echo "developer_instructions = \"\"\""
-      printf '%s\n' "$body" | escape_toml_multiline
-      echo "\"\"\""
-    } > "$toml_file"
 
-    count=$((count + 1))
-    echo "  agent: $name -> $toml_file"
+      model="$(frontmatter_get "$agent_file" "codex.model")"
+      reasoning="$(frontmatter_get "$agent_file" "codex.model_reasoning_effort")"
+      sandbox="$(frontmatter_get "$agent_file" "codex.sandbox_mode")"
+
+      toml_file="$DIST_CODEX/agents/$name.toml"
+      rel_source="${agent_file#"$REPO_ROOT/"}"
+      escaped_name="$(printf '%s' "$name" | escape_toml_basic)"
+      escaped_description="$(printf '%s' "$description" | escape_toml_basic)"
+      escaped_model="$(printf '%s' "$model" | escape_toml_basic)"
+      escaped_reasoning="$(printf '%s' "$reasoning" | escape_toml_basic)"
+      escaped_sandbox="$(printf '%s' "$sandbox" | escape_toml_basic)"
+
+      {
+        echo "# Auto-generated by build.sh - do not edit directly"
+        echo "# Source: $rel_source"
+        echo ""
+        echo "name = \"$escaped_name\""
+        echo "description = \"$escaped_description\""
+        [[ -n "$model" ]] && echo "model = \"$escaped_model\""
+        [[ -n "$reasoning" ]] && echo "model_reasoning_effort = \"$escaped_reasoning\""
+        [[ -n "$sandbox" ]] && echo "sandbox_mode = \"$escaped_sandbox\""
+        if (( ${#nickname_candidates[@]} > 0 )); then
+          printf 'nickname_candidates = '
+          emit_toml_string_array "${nickname_candidates[@]}"
+          printf '\n'
+        fi
+        echo ""
+        echo "developer_instructions = \"\"\""
+        printf '%s\n' "$body" | escape_toml_multiline
+        echo "\"\"\""
+      } > "$toml_file"
+
+      count=$((count + 1))
+      echo "  agent: $name -> $toml_file"
+    done
   done
 
   echo "  agents: $count toml file(s)"
