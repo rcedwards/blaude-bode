@@ -12,6 +12,7 @@ This repo is the source of truth for shared Claude/Codex skills and subagents.
 ## Skills
 
 - Skill frontmatter is authored for Claude first, then transformed for Codex.
+- Create or migrate skills in canonical source roots: use `skills/<name>/` for public/shared skills and `private/skills/<name>/` for private skills when the private sub-repo is present.
 - Keep the markdown body tool-agnostic unless a host-specific distinction is necessary.
 - `name` and `description` are required for every skill.
 - The skill directory name must match frontmatter `name`.
@@ -30,7 +31,9 @@ This repo is the source of truth for shared Claude/Codex skills and subagents.
 ## Structure
 
 - `skills/`: canonical shared skill definitions
+- `private/skills/`: canonical private skill definitions, when the private sub-repo is present
 - `agents/`: canonical shared agent definitions
+- `private/agents/`: canonical private agent definitions, when the private sub-repo is present
 - `bin/`: reusable shell helpers installed into `~/.local/bin`
 - `.githooks/`: optional repo-local git hooks for refreshing generated Codex artifacts
 - `dist/codex/`: generated Codex artifacts only
