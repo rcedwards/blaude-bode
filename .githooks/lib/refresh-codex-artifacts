@@ -65,5 +65,5 @@ echo "blaude-bode: refreshing generated Codex artifacts"
 echo "blaude-bode: Codex artifacts refreshed"
 
 if $needs_install_hint; then
-  echo "blaude-bode: agent or skill entrypoints changed; run ./install.sh --host codex to refresh local symlinks"
+  echo "blaude-bode: agent or skill entrypoints changed; run ./install.sh to refresh local symlinks (no args installs all detected hosts: Claude + Codex)"
 fi

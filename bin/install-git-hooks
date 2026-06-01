@@ -21,3 +21,12 @@ fi
 
 git -C "$REPO_ROOT" config core.hooksPath .githooks
 echo "Installed blaude-bode git hooks: core.hooksPath=.githooks"
+
+# The private skills/agents live in a separate nested repo at ./private (its own
+# remote, gitignored by this repo). Wire its hooks too if it is present so private
+# skill changes auto-install the same way.
+PRIVATE_ROOT="$REPO_ROOT/private"
+if git -C "$PRIVATE_ROOT" rev-parse --git-dir >/dev/null 2>&1; then
+  git -C "$PRIVATE_ROOT" config core.hooksPath .githooks
+  echo "Installed blaude-bode-private git hooks: core.hooksPath=.githooks"
+fi
