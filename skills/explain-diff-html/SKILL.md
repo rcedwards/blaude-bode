@@ -6,6 +6,8 @@ description: >
   a code walkthrough, and a quiz. Trigger on "explain this diff", "explain this PR",
   "walk me through this change", "write up an explanation of this branch", or when the
   user wants a shareable, teach-me-this-change document rather than a terse summary.
+  For a plain-text explanation delivered inline in the conversation instead of a file,
+  use the explain-diff-text skill.
 ---
 
 # Explain Diff
