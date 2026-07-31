@@ -1,6 +1,6 @@
 ---
 name: codex-consult
-description: >-
+description: >
   Consult or delegate to Codex (GPT) via codex exec. Two modes: (1) Consult -- get a second opinion
   on a plan, solution, architecture decision, or problem you're stuck on. (2) Delegate -- hand off
   independent work (writing tests, implementing a component, code review) to Codex in the background
