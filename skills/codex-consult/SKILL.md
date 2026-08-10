@@ -1,419 +1,272 @@
 ---
 name: codex-consult
 description: >
-  Consult or delegate to Codex (GPT) via codex exec. Two modes: (1) Consult -- get a second opinion
-  on a plan, solution, architecture decision, or problem you're stuck on. (2) Delegate -- hand off
-  independent work (writing tests, implementing a component, code review) to Codex in the background
-  while you continue working. Use when the user says "ask Codex", "second opinion", "what does GPT
-  think", "validate this plan", "cross-check this", "consult Codex", "delegate to Codex", "have
-  Codex write tests", "get another take", or similar. Consider self-triggering when you've been
-  going back and forth on an approach without progress, when a decision has significant consequences
-  and an independent review would reduce risk, or when you have independent work items that Codex
-  could handle in parallel.
+  Consult, delegate to, or orchestrate Codex (GPT) via codex exec. Three modes: (1) Consult -- get a
+  second opinion on a plan, solution, architecture decision, or problem you're stuck on.
+  (2) Delegate -- hand off one independent work item (writing tests, implementing a component, code
+  review) to Codex in the background while you continue working. (3) Orchestrate -- run a supervised
+  multi-task run with a durable journal, blind review, and independent verification. Use when the
+  user says "ask Codex", "second opinion", "what does GPT think", "validate this plan", "cross-check
+  this", "consult Codex", "delegate to Codex", "have Codex write tests", "get another take",
+  "orchestrate this with Codex", "supervise Codex", or similar. Consider self-triggering when you've
+  been going back and forth on an approach without progress, when a decision has significant
+  consequences and an independent review would reduce risk, or when you have independent work items
+  that Codex could handle in parallel.
 excluded_hosts:
   - codex
+requires:
+  - codex
+  - python3
 ---
 
 # Codex Consult
 
-Call Codex (GPT) non-interactively from Claude Code. Two modes of operation:
+Call Codex (GPT) non-interactively from Claude Code. Claude keeps the global context, plans, and
+verifies. Codex gets focused, bounded execution through its own CLI.
 
-- **Consult**: Get a second opinion. Codex runs in read-only mode (the default). You wait for
-  the response, synthesize it with your own perspective, and present both to the user.
-- **Delegate**: Hand off independent work. Codex runs with `--full-auto` (workspace-write). You
-  run it in the background and continue working. You review the output before reporting it done.
 
-## Choosing the right mode
+## Choosing a mode
 
-### Consult when:
+| Mode | Use when | Sandbox | Cost |
+|------|----------|---------|------|
+| **Consult** | You want a second opinion on a plan, solution, or blocker | `-s read-only` (must be explicit) | one foreground call |
+| **Delegate** | You have one independent, self-contained work item | `-s workspace-write` | one background call |
+| **Orchestrate** | Multiple tasks, or the result must be auditable and independently verified | `-s workspace-write` | a durable run |
 
-- You want to validate an implementation plan before executing
-- You want an independent perspective on a solution or architecture decision
-- You're stuck on a problem and want a fresh approach from a different model
-- You're weighing multiple approaches and want another perspective
+Start with the lightest mode that fits. Most asks are Consult. Reach for Orchestrate only when the
+work spans several tasks, needs blind review, or someone will later ask what was actually checked.
 
-### Delegate when:
+### Do NOT delegate or orchestrate when
 
-- Writing tests for code you just wrote
-- Implementing a component while you work on another
-- Code review of completed work items
-- Any independent task that doesn't depend on your in-progress work
-
-### Do NOT delegate when:
-
-- The task depends on something you're currently building (it will work against stale state)
-- Multiple agents would edit the same file (merge conflicts are inevitable)
-- The task requires your current conversation context (Codex starts cold)
+- The task depends on something you're currently building; Codex sees the filesystem as it is now
+- The task requires your conversation context and can't be written down (Codex starts cold)
+- Two agents would edit the same file, unless you isolate them with a worktree (see
+  `~/.claude/skills/codex-consult/references/compute.md`)
 
 ## Codex basics
 
-Codex reads `AGENTS.md` files automatically for project instructions (`~/.codex/AGENTS.md` for
-global defaults, `<repo>/AGENTS.md` for project-specific). This is similar to CLAUDE.md for
-Claude Code.
+Codex reads `AGENTS.md` automatically (`~/.codex/AGENTS.md` global, `<repo>/AGENTS.md` per project),
+the same way Claude Code reads CLAUDE.md.
 
-Sandbox modes in non-interactive (`codex exec`) mode:
+Set the Bash tool timeout to 300000ms. Consultations typically take 30-120 seconds; delegations run
+longer.
 
-| Mode | Flag | Behavior |
-|------|------|----------|
-| Read-only | (default, no flag) | Reads anywhere, writes and commands blocked |
-| Workspace-write | `--full-auto` | Pre-approves edits and commands in workspace |
+**`codex exec` defaults to `-s workspace-write`, not read-only.** Verify with the banner it prints:
+`sandbox: workspace-write [workdir, /tmp, $TMPDIR]`. Always pass `-s read-only` explicitly for a
+consultation. Omitting it hands a "second opinion" write access to the user's repository.
 
-Use read-only (default) for consultations, `--full-auto` for delegations.
+Flags that matter:
 
-Progress output goes to stderr, final result to stdout. The `-o` flag captures the final message
-to a file for clean reading.
+- `-s read-only`: blocks filesystem writes. It does **not** block command execution; Codex still runs
+  `rg`, `git diff`, and test commands, which is what makes a consultation useful. Not the default.
+- `-s workspace-write`: allows writes under the workspace roots shown in the banner.
+- `-c approval_policy=never`: never pause to ask for approval. It does not pre-approve anything; a
+  sandboxed operation that needs escalation just fails, and the failure returns to the model. This is
+  already the `codex exec` default, so pass it to be explicit and immune to config changes, not
+  because it changes behavior. Prefer it over `--full-auto`, which no longer appears in
+  `codex exec --help`.
+- `-o <file>`: write the final message to a file. This is the handoff.
+- `--json`: stream events as JSONL to stdout. Redirect to a file so you can monitor a background run.
+- `-C <path>`: working directory. `-i <path>`: attach images. `-m <model>`: pick a model.
+- `--skip-git-repo-check`: required outside a git repository or an untrusted directory.
+- `--ephemeral`: don't persist the session. Omit it unless you're certain you won't follow up;
+  a persisted session lets you resume a targeted follow-up instead of re-explaining.
+- `--output-schema <file>`: constrain the final response to a JSON Schema. Use for delegations whose
+  handoff you intend to parse rather than read.
 
----
+Without `--json`, progress goes to stderr and the final result to stdout. With `--json`, stdout
+becomes the JSONL event stream and `-o` is how you get the final message.
 
-## Consult Mode
+## Trust boundary
 
-### Constructing the prompt
+This governs every mode. A handoff establishes that Codex **claimed** something. It does not
+establish that the claim is true.
 
-Every consultation prompt needs three parts:
+- A handoff is a package of claims. An event stream shows what the harness emitted.
+- Neither establishes that a test passed against the accepted repository state.
+- A `Commands Reported` section is **not** a verification. Run the check yourself and observe it.
+- Verify against repository state or observed output. Use Codex's findings to decide what to inspect,
+  not what to conclude.
 
-**1. Role framing** -- Tell Codex it's acting as a consultant/reviewer.
+Do not trust self-reported success. Verify before reporting anything as done.
 
-**2. Context** -- Include relevant context directly in the prompt. Codex has filesystem access,
-but providing key information upfront saves time and focuses the analysis. Include:
-- The plan, solution, or problem description
-- Relevant file paths to examine (Codex cannot use `@` file references in exec mode)
-- Constraints or requirements the user has mentioned
-- What you've already tried (if getting unstuck)
+## Consult mode
 
-**3. Specific ask** -- Be precise about what feedback you want. Vague prompts get vague answers.
-
-**Good**: "Review this migration plan. Specifically: (1) will the schema change be safe under
-concurrent writes? (2) should any steps be reordered? (3) what's the rollback path if step 3 fails?"
-
-**Bad**: "What do you think of this plan?"
-
-### Running the consultation
-
-Create a unique temp file, then run Codex in read-only mode (no `--full-auto`):
+Read-only, foreground. You wait, synthesize, and present both perspectives.
 
 ```bash
-out="$(mktemp /tmp/codex-consult.XXXXXX.txt)"
-cat <<'PROMPT' | codex exec --ephemeral -o "$out" -
+out="$(mktemp /tmp/codex-consult.XXXXXX)"      # X's MUST be last; BSD mktemp ignores a suffix
+cat <<'PROMPT' | codex exec -s read-only -o "$out" -
 Your prompt here.
 PROMPT
+echo "$out"                                     # print it; $out is gone in your next Bash call
 ```
 
-If you are NOT inside a git repository (e.g., reviewing files in ~/.claude/), add
-`--skip-git-repo-check`.
+Both details bite. `mktemp /tmp/x.XXXXXX.md` does not substitute on macOS: it creates a literal
+`x.XXXXXX.md` the first time and fails with `File exists` on every call after. And `-s read-only` is
+not the default, so omitting it gives a consultation write access.
 
-To set a specific working directory (useful when running from a different context):
+Every consultation prompt needs three parts: **role framing** (Codex is a consultant, not an
+implementer), **context** (the plan or problem, file paths to examine, constraints, what you already
+tried), and a **specific ask**. Vague prompts get vague answers.
 
-```bash
-cat <<'PROMPT' | codex exec --ephemeral -C /path/to/project -o "$out" -
-Your prompt here.
-PROMPT
-```
+> **Good**: "Review this migration plan. Specifically: (1) will the schema change be safe under
+> concurrent writes? (2) should any steps be reordered? (3) what's the rollback path if step 3 fails?"
+>
+> **Bad**: "What do you think of this plan?"
 
-To attach screenshots or images for UI-related consultations:
+Codex cannot use `@` file references in exec mode. Give it real paths.
 
-```bash
-codex exec --ephemeral -i screenshot.png -o "$out" "Review this UI and suggest improvements"
-```
+Templates for plan validation, solution review, getting unstuck, and approach comparison are in
+`~/.claude/skills/codex-consult/references/templates.md`.
 
-Flags:
-- (no `--full-auto`): Read-only mode. Codex can read the entire codebase but cannot write or
-  run commands. This is the correct mode for consultations.
-- `--ephemeral`: Don't persist the session (one-shot consultation).
-- `-C <path>`: Set working directory explicitly.
-- `-i <path>`: Attach image(s) for visual context.
-- `--skip-git-repo-check`: Required when running outside a git repository.
-- `-o "$out"`: Capture Codex's final response for clean reading.
+### Presenting the result
 
-Set the Bash tool timeout to 300000ms. Consultations typically take 30-120 seconds, but complex
-codebase questions where Codex needs to read several files can take longer.
-
-### Presenting consultation results
-
-After Codex responds:
-
-1. Read the output from the temp file, then delete it
-2. Synthesize both perspectives. Don't just parrot Codex's response. Add your own analysis.
-3. Flag disagreements explicitly. When you and Codex disagree, explain both positions and let the
-   user decide. Disagreements are the most valuable part since they surface genuine tradeoffs.
-4. Be transparent. Tell the user you consulted Codex and what you asked.
-
-Format:
+Read the output file, then delete it. Synthesize; don't parrot. Tell the user you consulted Codex and
+what you asked.
 
 ```
 I consulted Codex on [what you asked about]. Here's the combined assessment:
 
-**Codex's take:**
-[Summary of key points from Codex]
-
-**Where we align:**
-[Areas of agreement, briefly]
-
-**Where we differ:**
-[Disagreements with both rationales, if any]
-
-**My recommendation:**
-[Your synthesized recommendation based on both perspectives]
+**Codex's take:** [key points]
+**Where we align:** [briefly]
+**Where we differ:** [both rationales, if any]
+**My recommendation:** [your synthesis]
 ```
 
-Simplify this when there are no meaningful disagreements. The format exists to surface differences
-when they exist, not to manufacture debate.
+Collapse this when there are no meaningful disagreements. The format exists to surface differences,
+not to manufacture debate.
 
-### Consultation templates
+When you and Codex disagree, resolve it by acceptance fit, direct evidence, risk, simplicity, and
+reversibility. Never by agent count; two models agreeing is not evidence. See
+`~/.claude/skills/codex-consult/references/consensus.md`.
 
-#### Plan validation
+## Delegate mode
 
-```
-You are reviewing an implementation plan as a technical consultant. Analyze the plan for gaps,
-risks, and ordering issues. Do not implement anything or modify any files.
+One independent work item, workspace-write, background.
 
-Here is the plan:
----
-[THE PLAN]
----
-
-The codebase is in the current directory. Review these files for additional context: [FILE PATHS]
-
-Evaluate:
-1. Are there missing steps or implicit assumptions?
-2. Is the step ordering correct, or should anything be reordered?
-3. What are the riskiest steps and how should they be mitigated?
-4. What's the rollback path if something fails partway through?
-5. Anything else that concerns you?
-```
-
-#### Solution review
-
-```
-You are reviewing a proposed solution as a technical consultant. Evaluate correctness, edge cases,
-and tradeoffs. Do not implement anything or modify any files.
-
-Problem: [WHAT WE'RE SOLVING]
-
-Proposed solution: [THE SOLUTION]
-
-Relevant files to examine: [FILE PATHS]
-
-Evaluate:
-1. Will this solution correctly handle the stated problem?
-2. What edge cases might it miss?
-3. Are there simpler alternatives worth considering?
-4. What are the maintenance or performance implications?
-```
-
-#### Getting unstuck
-
-```
-You are a technical consultant providing a fresh perspective on a problem someone has been stuck on.
-
-Problem: [DESCRIPTION]
-
-What's been tried so far and why it didn't work:
-[APPROACHES TRIED]
-
-Relevant files to examine: [FILE PATHS]
-
-Please:
-1. Do your own analysis of the relevant code
-2. Identify what might be going wrong
-3. Suggest approaches that haven't been tried
-4. If you can identify the root cause, explain it
-```
-
-#### Approach comparison
-
-```
-You are a technical consultant helping evaluate competing approaches. Do not implement anything
-or modify any files.
-
-Problem: [WHAT WE'RE SOLVING]
-
-Approach A: [DESCRIPTION]
-Approach B: [DESCRIPTION]
-
-Relevant files to examine: [FILE PATHS]
-
-For each approach, evaluate:
-1. Correctness and completeness
-2. Complexity and maintainability
-3. Performance characteristics
-4. Risk and failure modes
-
-Then give your recommendation with reasoning.
-```
-
----
-
-## Delegate Mode
-
-### Pre-flight checks
-
-Before delegating, verify:
-
-1. **Independence**: The task does not depend on files you are actively editing or work you
-   haven't finished yet. Codex will see the filesystem as it is right now.
-2. **No file overlap**: List the files Codex will create or modify. If any overlap with files you
-   plan to touch, do not delegate.
-3. **Self-contained**: The task can be fully described without your conversation history. If you
-   find yourself needing to explain a chain of decisions from the current session, the task
-   probably needs your context.
-
-### Running the delegation
-
-Create a unique temp file, then run Codex with `--full-auto` in the background:
+Pre-flight: confirm the task is independent of your in-progress work, that no file Codex will touch
+overlaps a file you plan to touch, and that the task is fully describable without your conversation
+history.
 
 ```bash
-out="$(mktemp /tmp/codex-delegate.XXXXXX.txt)"
-cat <<'PROMPT' | codex exec --full-auto -o "$out" -
-[TASK DESCRIPTION WITH FULL CONTEXT]
-PROMPT
+d="$(mktemp -d /tmp/codex-delegate.XXXXXX)" && echo "DELEGATE_DIR=$d"
+codex exec --json -o "$d/handoff.md" \
+  -s workspace-write -c approval_policy=never \
+  - < prompt.md > "$d/events.jsonl"
 ```
 
-Run this via Bash with `run_in_background: true` and a timeout of 300000ms. Continue working on
-your own tasks while Codex runs. You will be notified when it completes.
+Echo the directory and then use its **literal** path in every later command. Shell variables do not
+survive between Bash calls, so a follow-up referring to `$d` silently expands to nothing and writes
+to `/handoff.md`.
 
-Note the temp file path so you can read it when Codex finishes.
+Run it with `run_in_background: true`. Note that the Bash timeout caps the run: a delegation that
+needs longer than the timeout you set is killed mid-flight, leaving a truncated event stream and no
+handoff. Size the timeout to the task, and on a kill treat the execution as `failed` rather than
+inferring what it might have finished.
 
-Delegation does not use `--ephemeral` so the session persists. If you need to follow up on
-incomplete work, resume the session:
+While it runs, check progress without pulling raw logs into context:
 
 ```bash
-codex exec resume --last "follow-up instructions here"
+python3 ~/.claude/skills/codex-consult/scripts/codex_orch_tools.py \
+  monitor --log /tmp/codex-delegate.XXXXXX/events.jsonl --once
 ```
 
-Resume inherits the sandbox settings from the original session, so do not pass `--full-auto` again.
+Every delegation prompt names specific file paths, verification commands to run, constraints on what
+not to touch, and what "done" means. Break complex work into focused, single-purpose tasks; one
+delegation asking for five features produces worse results than five delegations.
 
-### Prompting for delegation
+End every delegation prompt with the handoff contract:
 
-Treat Codex like a teammate with explicit context and a clear definition of "done." Effective
-delegation prompts include:
+```markdown
+Finish with a concise final response using exactly these headings:
 
-- **Specific file paths** (Codex cannot use `@` references in exec mode)
-- **Verification commands** to run after implementation (test suite, linter, type checker)
-- **Constraints** on what NOT to touch
-- **Deliverables** that define "done"
+## Status
 
-Break complex work into focused, single-purpose tasks. A delegation that asks for five features
-at once will produce worse results than five focused delegations.
+## Summary
 
-All delegation prompts should end with these constraints:
+## Files Changed
 
-```
-Constraints:
-- Do not commit, create branches, or revert unrelated changes
-- Do not modify any files outside the ones listed above
-- When finished, summarize: files changed, verification results, and any unresolved issues
-```
+## Claims / Findings
 
-### Delegation templates
+## Commands Reported
 
-#### Write tests
-
-```
-Write tests for the following code. The codebase is in the current directory.
-
-Files to test: [FILE PATHS]
-
-Testing framework and conventions: [FRAMEWORK, e.g. "Swift Testing (not XCTest)", "pytest", etc.]
-
-Key behaviors to cover:
-- [BEHAVIOR 1]
-- [BEHAVIOR 2]
-- [EDGE CASE]
-
-Place test files at: [TARGET PATHS, e.g. "Tests/MyFeatureTests/"]
-
-Follow existing test patterns in the project. Look at nearby test files for conventions.
-
-Verification:
-- Run: [TEST COMMAND, e.g. "swift test --filter MyFeatureTests"]
-- Fix any failures before reporting done
-
-Constraints:
-- Do not commit, create branches, or revert unrelated changes
-- Do not modify any files outside the test files listed above
-- When finished, summarize: files created, tests run, pass/fail results, and any unresolved issues
-```
-
-#### Implement a component
-
-```
-Implement the following component. The codebase is in the current directory.
-
-What to build: [DESCRIPTION]
-
-Requirements:
-- [REQUIREMENT 1]
-- [REQUIREMENT 2]
-
-Files to create or modify: [TARGET PATHS]
-
-Reference these existing files for patterns and conventions: [SIMILAR FILES]
-
-Verification:
-- Run: [BUILD/TEST COMMAND]
-- Confirm no lint errors: [LINT COMMAND]
+## Caveats / Blockers
 
 Constraints:
 - Do not commit, create branches, or revert unrelated changes
 - Do not modify any files outside the ones listed above
-- When finished, summarize: files changed, what was implemented, verification results, and any
-  unresolved issues
 ```
 
-#### Code review
+The fixed shape is what makes the handoff checkable. Templates are in
+`~/.claude/skills/codex-consult/references/templates.md`.
 
-Use the built-in review subcommand for code review delegation:
+For code review specifically, prefer the built-in subcommand, which is purpose-built and produces
+better structure than a freeform prompt:
 
 ```bash
-out="$(mktemp /tmp/codex-review.XXXXXX.txt)"
-codex exec review --base <target-branch> -o "$out"
+codex exec review --base <branch> -o "$out/handoff.md"     # or --uncommitted, or --commit <sha>
 ```
-
-Or for uncommitted changes:
-
-```bash
-codex exec review --uncommitted -o "$out"
-```
-
-Or for a specific commit:
-
-```bash
-codex exec review --commit <sha> -o "$out"
-```
-
-The built-in `codex exec review` is purpose-built for code review and produces better structured
-output than a freeform prompt. It automatically analyzes the diff and focuses on correctness,
-style, and risk.
 
 ### Reviewing delegated work
 
-When Codex finishes:
+1. Read the handoff. Treat it as claims.
+2. Inspect the actual diff and changed files. Compare against the paths you allowed.
+3. Run the verification commands yourself and observe the result.
+4. Fix minor issues yourself; re-delegate major ones with sharper instructions.
+5. Only then report the item complete.
 
-1. **Read the output** from the temp file to see what Codex reports it did, then delete it
-2. **Check the actual changes** with `git diff` or by reading modified files. The output file
-   describes intent, not necessarily what happened. Verify.
-3. **Run tests** or build commands to confirm the changes are correct
-4. **Fix issues** yourself if minor, or re-delegate with more specific instructions if major
-5. **Only then** report the work item as complete to the user
+To follow up on incomplete work, resume rather than starting cold. Resume by explicit session id, and
+re-pass the sandbox flags:
 
-Do not trust Codex's self-reported success. Verify before reporting.
+```bash
+rg -m1 '"type":"thread.started"' /tmp/codex-delegate.XXXXXX/events.jsonl   # read thread_id
+codex exec -s workspace-write -c approval_policy=never \
+  resume <session-id> "follow-up instructions here"
+```
 
----
+Resume restores the conversation, not your invocation flags: sandbox and approval are resolved fresh
+each time, so a resume without `-s` silently drops back to the default. Avoid `--last`, which picks
+the newest session scoped to the current directory. Any other consult or delegation you started since
+can become "last."
+
+## Orchestrate mode
+
+A supervised run: Claude plans, decomposes into tasks, assigns scoped Codex agents, independently
+verifies each result, records consequential decisions, and closes with a report. Every prompt, event
+stream, and handoff is kept so the run can be inspected later.
+
+Read `~/.claude/skills/codex-consult/references/workflow.md` and follow it. It owns run initialization, the task
+lifecycle, closure, and the report. Load the other references only as the current phase needs them:
+
+- `references/orchestration-contract.md`: journal entry types, record authority, validation semantics
+- `references/monitoring.md`: launching, capturing, resuming, and monitoring agents
+- `references/review.md`: verification and blind independent review
+- `references/consensus.md`: recording decisions
+- `references/compute.md`: parallel file ownership, worktrees, resource gating
+- `references/report.md`: the final report structure
 
 ## General guidelines
 
-- **Don't overuse this.** Codex calls cost time and tokens. Reserve consultations for genuine
-  decision points, significant plans, or when truly stuck. Reserve delegation for tasks that are
-  clearly independent and substantial enough to justify the overhead.
-- **Context is everything.** Codex starts cold with no conversation history. Give it enough context
-  to be useful but don't dump your entire session.
-- **Independence matters.** For consultations, don't bias the prompt toward your preferred answer.
-  For delegations, don't hand off tasks that depend on your in-progress work.
-- **The user decides.** For consultations, present both perspectives and let the user choose. A
-  second opinion is advisory, not authoritative.
-- **Task granularity.** Break complex work into focused, single-purpose tasks. Files over ~2000
-  lines slow Codex down since it reads the entire file multiple times. Consider pointing Codex
-  at specific line ranges or splitting the task.
-- **Sandbox limits.** `--full-auto` gives Codex sandboxed workspace-write access. Delegation
-  tasks must be completable within that sandbox without extra approvals. If a task needs network
-  access, elevated permissions, or interactive input, it will fail silently.
+- **Don't overuse this.** Codex calls cost time and tokens. Reserve consultation for genuine decision
+  points and delegation for work that's clearly independent and substantial enough to justify the
+  overhead.
+- **Context is everything.** Codex starts cold. Give it enough to be useful without dumping the
+  session.
+- **Don't bias a consultation.** Don't lead the prompt toward your preferred answer. For an
+  independent review, also withhold the implementer's handoff and your tentative conclusion
+  (`references/review.md`).
+- **The user decides.** A second opinion is advisory, not authoritative.
+- **Task granularity.** Files over ~2000 lines slow Codex down because it re-reads them. Point at line
+  ranges or split the task.
+- **Sandbox limits.** `workspace-write` plus `approval_policy=never` fails closed: there is no
+  escalation path, so a blocked operation just errors. Before delegating, check whether the task needs
+  anything outside the workspace roots in the banner. Common tripwires: package managers needing
+  network and a global cache, test runs writing to SDK or simulator caches in `~/`, git hooks that
+  need separate trust, and anything expecting interactive input. Name those needs in the prompt so the
+  failure is diagnosable. Broad access belongs in an externally hardened container and needs explicit
+  authorization.
+
+The orchestration layer and its tooling are adapted from
+[codex-orchestrator](https://github.com/alexzh3/codex-orchestrator) (MIT); see
+`~/.claude/skills/codex-consult/scripts/LICENSE.upstream`.
