@@ -100,6 +100,23 @@ Do not:
 - outsource the primary analysis before doing your own local work
 - treat Claude's answer as authoritative when it conflicts with observed code or tests
 
+## Review Hygiene
+
+A second opinion is worth something only if it is independent. Anchoring the reviewer destroys the
+thing you asked for.
+
+When you want a genuine critique rather than a sanity check:
+
+- Withhold your own tentative conclusion, any earlier review verdict, and claimed test results.
+- Give the goal, the constraints, and the acceptance criteria. Let Claude reach its own read.
+- Pin the target. Name the exact commit SHA or the exact files and line ranges under review, not
+  "the current state," which moves while you work.
+- Start a fresh consultation rather than continuing one that already contains your position.
+
+Before committing to a consequential or hard-to-reverse design, consider asking for a proposal from
+only the goal, constraints, and acceptance criteria, without showing your plan. An unanchored
+proposal you can compare against is more useful than a critique of the plan you already favor.
+
 ## Output Handling
 
 Treat Claude as a reviewer.
@@ -107,6 +124,20 @@ Treat Claude as a reviewer.
 - Compare its answer against the codebase and the user's goal.
 - Pull out the useful parts: missing risks, sharper tradeoffs, alternate debugging steps.
 - Ignore speculative advice that is not grounded in the provided context.
+- Treat every claim as a claim. A reported command result establishes only that Claude said it. Run
+  the check yourself and observe it before acting on it.
+
+## Resolving Disagreement
+
+When Claude's answer conflicts with yours, decide by acceptance fit, direct evidence, risk,
+simplicity, and reversibility.
+
+Never decide by agreement count. Two models converging is correlated noise, not corroboration, and a
+single dissent backed by a failing check outranks confident agreement.
+
+Verify a material finding against the code before you act on it. A finding you cannot reproduce is
+not a finding. Send a targeted follow-up on the specific point rather than asking for another broad
+review.
 
 ## Failure Handling
 
