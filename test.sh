@@ -282,4 +282,16 @@ install_output="$(HOME="$existing_home" ./install.sh --host codex 2>&1)"
 [[ ! -e "$existing_home/.codex/skills/review" ]] \
   || fail "expected stale ~/.codex/skills/review symlink to be removed"
 
+# Vendored orchestration tooling ships inside the codex-consult skill and runs on stdlib unittest.
+orch_scripts="$REPO_ROOT/skills/codex-consult/scripts"
+if [[ -d "$orch_scripts/tests" ]]; then
+  if command -v python3 &>/dev/null; then
+    (cd "$orch_scripts" && python3 -m unittest discover -s tests -t . -q) \
+      || fail "codex-consult orchestration tooling tests failed"
+    echo "  codex-consult orchestration tooling: ok"
+  else
+    echo "  WARNING: python3 not on PATH - skipping codex-consult orchestration tooling tests"
+  fi
+fi
+
 echo "All checks passed."

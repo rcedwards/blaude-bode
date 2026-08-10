@@ -3,3 +3,5 @@ dist/
 .remember/
 .DS_Store
 private/
+__pycache__/
+*.pyc
