@@ -34,3 +34,21 @@ This repo stores shared skill and agent source files for Claude Code and Codex.
 - Keep markdown bodies shared unless the distinction is unavoidable.
 - Codex strips Claude-only frontmatter, so required operational steps should also be described in the body when they matter for correctness.
 - Prefer extending `build.sh` and `install.sh` instead of creating duplicate Claude-only and Codex-only source files.
+
+## Security and privacy
+
+This is a public repository. Never add secrets, credentials, tokens, personal data, customer data,
+internal URLs, private repository names, private infrastructure details, or company-specific names
+and identifiers to source files, examples, tests, fixtures, logs, commit messages, or documentation.
+
+- Use unmistakably generic placeholders such as `owner/repo`, `example.com`, `<token>`, and
+  `<internal-service>`. A prohibited-content example must not contain a real or realistic private
+  identifier.
+- Do not copy content from `private/` into this repository without reviewing and sanitizing every
+  line. If material is personal, organization-specific, or uncertain, keep it in the nested private
+  repository.
+- Before every commit, inspect the full staged diff with `git diff --cached` specifically for
+  sensitive information. Stage only intended files; do not rely on `.gitignore` as a privacy check.
+- If sensitive information may already have been committed or pushed, stop. Do not merely delete it
+  in a later commit; notify the user so credentials can be rotated and repository history can be
+  cleaned deliberately.
