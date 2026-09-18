@@ -33,7 +33,8 @@ splitting commits, force-push safety), use the `git-best-practices-agent` subage
 - Never add AI attribution signatures (`Co-Authored-By: Claude`, "Generated with Claude Code",
   robot emoji, etc.).
 - Never add `Co-Authored-By` trailers of any kind.
-- Include the Jira ticket key when there is one.
+- Include the Jira ticket key when there is one. Plenty of work has none, especially in the
+  tooling and automation repos; write the subject without one rather than hunting for a ticket.
 
 ### Enforcement
 
@@ -46,21 +47,29 @@ Other hosts have no such hook, so the rules above must be followed by hand.
 
 ## Branch Naming
 
-Format: `rcedwards/JIRA-TICKET-short-description`
+Format: `rcedwards/JIRA-TICKET-short-description`, or `rcedwards/short-description` when the
+work has no ticket.
 
 Examples:
 - `rcedwards/GD-6163-sk2-firebase-event`
 - `rcedwards/FOX-1234-fix-login-bug`
+- `rcedwards/pr-nudge-business-hours`
 
 The `rcedwards/` prefix signals the branch is owned by one person and may be rewritten.
+
+The ticket key is expected in the app repos (`ios-onxmaps`, `android-onxmaps`) and in service
+repos where the work is tracked in Jira. Tooling, automation and config repos routinely carry
+work that has no ticket. Never invent a key, leave a placeholder, or stop to ask for one.
 
 ## Pull Requests
 
 Create PRs as drafts first: `gh pr create --draft`.
 
-Title format: `[GD-XXXX] - Description`.
+Title format: `[GD-XXXX] - Description` where the work has a ticket, otherwise a plain
+descriptive title with no bracket prefix.
 
-Always use the PR template from `.github/pull_request_template.md`.
+Use the PR template from `.github/pull_request_template.md` whenever the repo has one. Many of
+the smaller repos do not.
 
 ### Description
 
