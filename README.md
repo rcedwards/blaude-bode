@@ -34,6 +34,44 @@ After install, Claude skills are available as `/[name]` slash commands. Codex ge
 
 ---
 
+## Setting up a new machine
+
+This repo works on its own. An optional private companion repo adds personal skills on top.
+
+**Public only** — nothing extra to do:
+
+```bash
+git clone https://github.com/rcedwards/blaude-bode.git ~/workspace/blaude-bode
+cd ~/workspace/blaude-bode
+./install.sh
+./bin/install-git-hooks   # optional
+```
+
+`build.sh` and `install.sh` look for `private/skills` and `private/agents` and skip them
+when absent, so a machine without the private repo installs the public set and nothing
+breaks.
+
+**Adding the private repo** — clone it into `private/`, which this repo gitignores:
+
+```bash
+cd ~/workspace/blaude-bode
+git clone git@github.com:rcedwards/blaude-bode-private.git private
+./bin/install-git-hooks   # re-run: wires hooks in BOTH repos
+./install.sh              # picks up private/ automatically
+```
+
+Run `install.sh` with no `--host`. Passing `--host claude` alone silently skips Codex.
+
+**Which repo does a new skill belong in?** Public root when it is shareable and has no
+personal or employer-specific content. `private/` when it hardcodes personal paths,
+accounts, or internal systems. Ask before deciding.
+
+**Committing:** `private/` is a separate repo with its own remote. Commit private changes
+from inside `private/`, never from this repo — this repo cannot see them. Each clone needs
+`./bin/install-git-hooks` run once; hooks are local config and do not travel with a clone.
+
+---
+
 ## Layout
 
 - `skills/`: canonical skill definitions
@@ -41,6 +79,7 @@ After install, Claude skills are available as `/[name]` slash commands. Codex ge
 - `bin/`: reusable helper scripts
 - `bin/lib/`: shared shell helpers for build/install scripts
 - `dist/codex/`: generated Codex artifacts
+- `private/`: optional nested repo for personal skills and agents; gitignored here
 - `AGENTS.md`: repo-local Codex guidance for contributors
 - `CLAUDE.md`: repo-local Claude guidance for contributors
 
