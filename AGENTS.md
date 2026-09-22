@@ -8,6 +8,7 @@ This repo is the source of truth for shared Claude/Codex skills and subagents.
 - Run `./install.sh --host claude` or `./install.sh --host codex` to refresh local symlinks after adding or removing files.
 - Run `./test.sh` when changing source layout, build logic, or install behavior.
 - Run `./bin/install-git-hooks` once per clone if you want staged canonical edits to auto-run `./build.sh` before commit.
+- Commit and push every change in this repo and in `private/` as soon as it is done. Never leave skill or agent edits uncommitted at the end of a task.
 
 ## Skills
 
