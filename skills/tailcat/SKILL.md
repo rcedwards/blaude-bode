@@ -1,11 +1,16 @@
 ---
 name: tailcat
 description: >
-  Pipe data, forward ports, SSH, or copy files between two machines with
-  tailcat, a netcat-like CLI over Tailscale's WireGuard data plane with no Tailscale account or
-  control plane. Use when the user says "tailcat", has a "tc..." address to connect to, wants to
-  send a file or text to another machine, expose a local port or dev server to someone else, SSH
-  into a machine behind NAT without opening ports, or reach a device on a remote LAN.
+  Use when both ends of a connection are machines the user or a teammate can run a command on,
+  and they need to talk directly but one is behind NAT, a firewall, or a network with no inbound
+  ports, with no Tailscale or VPN already linking them. Covers: a teammate reaching my localhost
+  dev server, API, or database; sending a file, logs, crash dump, or build artifact to another
+  machine too big for Slack or when AirDrop won't work; a shell on or files from a home machine,
+  lab box, CI runner, or cloud VM with no public IP; reaching a device on a remote LAN (Android
+  adb, a NAS, an internal web UI) through a machine on that network; piping stdout between hosts.
+  Also use when the user says "tailcat" or pastes a "tc..." address. When the other end is a
+  third-party service or anyone who cannot install software (Stripe or GitHub webhooks, OAuth
+  redirects, a public link), the request is for a public URL tunnel, not this skill.
 ---
 
 # tailcat
@@ -21,6 +26,33 @@ Full docs: `tailcat readme`. Per-command flags: `tailcat <subcommand> --help`. P
 the GitHub README, which tracks main and documents features (`perf`, `serve` port mappings like
 `5555:10.0.0.5:5555`) that v0.7.0 does not have. Check `tailcat version` if a documented command
 fails.
+
+## Check first: does the other end run tailcat?
+
+tailcat only connects two machines that both run the tailcat CLI. It has no public URL. Stop and
+use something else when:
+
+- The other end is a third-party service or a person who won't install software (Stripe or
+  GitHub webhooks, OAuth redirects, a link a client clicks, a phone browser): recommend a public
+  tunnel such as ngrok or cloudflared instead.
+- The machines already share a Tailscale tailnet or VPN: connect over it directly.
+- The access must be permanent and multi-user: set up real Tailscale or a VPN instead of saved
+  tailcat keys.
+
+## When to use
+
+| Problem | Recipe |
+|---------|--------|
+| Teammate needs to hit my local dev server or API | I run `serve <port>`; they run `forward <tc> <port>` or `browse <tc>` |
+| Teammate needs my local Postgres/MySQL/Redis | I run `serve 5432`; they run `forward <tc> 15432:5432` and point their client at localhost |
+| Send a large file, log bundle, or build artifact | Receiver runs `recv ~/inbox`; sender runs `cp <file> <tc>:` |
+| Pull files off a remote box | Remote runs `serve files` in the directory; I run `ls`/`cp <tc>:path .` |
+| Shell on a machine with no public IP (home server, CI runner, VM) | Remote runs `serve --ssh-authorized-keys=user@github ssh`; I run `ssh <tc>` |
+| Reach a device on someone else's LAN (Android `adb`, NAS, router UI) | A machine on that LAN runs `serve exit-node`; I run `forward <tc> 5555:<device-ip>:5555`, then `adb connect 127.0.0.1:5555` |
+| Stream command output to another host | Receiver runs `tailcat > out`; sender runs `<cmd> \| tailcat <tc>` |
+| Run a CLI tool against a remote private network | Remote runs `serve exit-node`; I run `socks <tc> curl http://10.0.0.5/` |
+
+Every recipe needs some private channel (DM, call) to pass the address.
 
 ## The address is a credential
 
