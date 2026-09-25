@@ -1,7 +1,7 @@
 ---
 name: tailcat
 description: >
-  Pipe data, forward ports, SSH, copy files, or measure throughput between two machines with
+  Pipe data, forward ports, SSH, or copy files between two machines with
   tailcat, a netcat-like CLI over Tailscale's WireGuard data plane with no Tailscale account or
   control plane. Use when the user says "tailcat", has a "tc..." address to connect to, wants to
   send a file or text to another machine, expose a local port or dev server to someone else, SSH
