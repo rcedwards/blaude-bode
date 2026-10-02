@@ -92,7 +92,7 @@ concurrent writes? (2) should any steps be reordered? (3) what's the rollback pa
 Create a unique temp file, then run Codex in read-only mode (no `--full-auto`):
 
 ```bash
-out="$(mktemp /tmp/codex-consult.XXXXXX.txt)"
+out="$(mktemp /tmp/codex-consult.XXXXXX)"
 cat <<'PROMPT' | codex exec --ephemeral -o "$out" -
 Your prompt here.
 PROMPT
@@ -262,7 +262,7 @@ Before delegating, verify:
 Create a unique temp file, then run Codex with `--full-auto` in the background:
 
 ```bash
-out="$(mktemp /tmp/codex-delegate.XXXXXX.txt)"
+out="$(mktemp /tmp/codex-delegate.XXXXXX)"
 cat <<'PROMPT' | codex exec --full-auto -o "$out" -
 [TASK DESCRIPTION WITH FULL CONTEXT]
 PROMPT
@@ -365,7 +365,7 @@ Constraints:
 Use the built-in review subcommand for code review delegation:
 
 ```bash
-out="$(mktemp /tmp/codex-review.XXXXXX.txt)"
+out="$(mktemp /tmp/codex-review.XXXXXX)"
 codex exec review --base <target-branch> -o "$out"
 ```
 
