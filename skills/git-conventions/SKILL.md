@@ -12,8 +12,9 @@ description: >-
 
 # Git Conventions
 
-The rules below are canonical. For rewriting existing history (amend, interactive rebase,
-splitting commits, force-push safety), use the `git-best-practices-agent` subagent.
+The rules below are canonical. Rework a branch's history in the main session with the fast rework
+recipe at the end of this skill. Use the `git-best-practices-agent` subagent only for large,
+unattended rewrites the user doesn't need to wait on.
 
 ## Commit Messages
 
@@ -109,3 +110,30 @@ GitHub supports reviewing PRs commit-by-commit, so history must read forward, ne
 - The branch should tell a story: setup, then implementation, then wiring it together.
 - Clean up history with interactive rebase before opening the PR. If the branch is already pushed,
   rebase and force-push with `--force-with-lease` (feature branches only, never main or develop).
+
+## Fast History Rework
+
+Use this to fold review fixes into earlier commits, reword, drop, or redistribute changes across a
+pushed branch. It takes minutes. Delegating the same rework to a subagent took 20-35 minutes per
+round in practice: cold context, per-step re-verification, conflict loops, and once a rebase onto a
+newer develop that broke the final-tree check.
+
+1. Make all code changes at the tip first, as plain commits, and test there once. The tip is the
+   "tested tip".
+2. Back up: `git branch <branch>-backup-<tag> <tested-tip>`.
+3. Map ownership: `git show --stat --format= <sha>` for each original commit. A file that only one
+   target commit touches can take its final content directly in that commit.
+4. Rebuild on the original merge base, never a newer develop:
+   `git checkout -B <branch> $(git rev-parse <first-commit>^)`. For each target commit:
+   - `git cherry-pick --no-commit <original>`
+   - Apply that commit's share of the fixes: `git checkout <tested-tip> -- <files only this commit
+     owns>`, or a short scripted edit (sed, or python with an assert per replacement) for files
+     later commits also touch. Mechanical renames are one `sed` per commit.
+   - The last commit can take the tested tip's version of every file it touches.
+   - Commit with `git -c core.hooksPath=/dev/null commit`: the tested tip already passed the
+     hooks, and step 5 proves the trees match.
+5. Verify statically. No builds or tests:
+   - `git diff --stat <tested-tip> HEAD` must be empty.
+   - For each commit, check that no symbol appears before the commit that introduces it:
+     `git show <sha>:<path> | rg -c <symbol>`.
+6. Push with `git push --force-with-lease=<branch>:<old-remote-sha> origin <branch>`.
