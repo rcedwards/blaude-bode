@@ -130,6 +130,11 @@ newer develop that broke the final-tree check.
      owns>`, or a short scripted edit (sed, or python with an assert per replacement) for files
      later commits also touch. Mechanical renames are one `sed` per commit.
    - The last commit can take the tested tip's version of every file it touches.
+   - Before each commit, check that `rg -l '^<<<<<<<'` finds nothing. Never chain the commit onto a
+     cherry-pick with `&&` unchecked. Two commits inserting at the same spot (e.g. new tests before
+     a shared helper) conflict; keep both sides in the order the tested tip has them.
+   - Insert new code at the same relative position as in the tested tip. Otherwise the last commit
+     shows it as moved.
    - Commit with `git -c core.hooksPath=/dev/null commit`: the tested tip already passed the
      hooks, and step 5 proves the trees match.
 5. Verify statically. No builds or tests:
