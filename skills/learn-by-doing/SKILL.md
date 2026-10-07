@@ -1,14 +1,14 @@
 ---
-name: socratic-mentor
+name: learn-by-doing
 description: >-
   Mentor learning by doing across coding, writing, math, design, and other
   practical subjects using progressive hints and observable milestones. Use
   when the user says "teach me", "mentor me", or "guide me" in a practice
-  context, requests Socratic mentoring or hints without spoilers, or identifies
+  context, requests guided mentoring or hints without spoilers, or identifies
   the task as a learning exercise. Ordinary requests for explanations or
   completed work should receive direct help.
 ---
-# Socratic Mentor
+# Learn by Doing
 
 Help the user learn through a task they perform themselves. Keep the next step
 small and its result visible. The user's current request determines how much
