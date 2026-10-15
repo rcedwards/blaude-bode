@@ -5,9 +5,10 @@ description: >-
   before writing any commit message, before creating a branch, and before opening or updating a
   pull request. Also use when the user asks how a commit message should be worded, what to name a
   branch, why a commit was rejected by the commit guard hook, or how to fill out a PR description
-  or test plan. Covers the imperative-subject format, the 350-character message cap, the
-  one-logical-change rule, the `rcedwards/JIRA-TICKET-description` branch format, and the
-  draft-first PR workflow.
+  or test plan, rework a branch's history (fold fixes, reword, split, drop), or trigger CI on a
+  PR. Covers the imperative-subject format, the 350-character message cap, the
+  one-logical-change rule, the `rcedwards/JIRA-TICKET-description` branch format, the
+  draft-first PR workflow, the fast history-rework recipe, and the CI trigger comment.
 ---
 
 # Git Conventions
@@ -23,7 +24,7 @@ unattended rewrites the user doesn't need to wait on.
 - Blank line between the subject and the body; wrap the body at 72 chars.
 - Explain WHY, not what. The diff already shows what changed.
 - Keep it concise; add detail only where it earns its place. The whole message must stay under
-  350 characters. Brevity is a must.
+  350 characters.
 - One logical change per commit. Don't bundle unrelated edits; commits needn't be artificially
   small, but each must be a single coherent change. Review the staged diff before committing.
 - The subject must summarize the whole change, not one narrow aspect of it.
@@ -115,9 +116,8 @@ GitHub supports reviewing PRs commit-by-commit, so history must read forward, ne
 ## Fast History Rework
 
 Use this to fold review fixes into earlier commits, reword, drop, or redistribute changes across a
-pushed branch. It takes minutes. Delegating the same rework to a subagent took 20-35 minutes per
-round in practice: cold context, per-step re-verification, conflict loops, and once a rebase onto a
-newer develop that broke the final-tree check.
+pushed branch. It takes minutes in the main session; a subagent starts cold and re-verifies each
+step, which makes the same rework many times slower.
 
 1. Make all code changes at the tip first, as plain commits, and test there once. The tip is the
    "tested tip".
