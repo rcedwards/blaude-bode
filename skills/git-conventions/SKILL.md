@@ -108,8 +108,9 @@ GitHub supports reviewing PRs commit-by-commit, so history must read forward, ne
 - One concern per commit. Separate refactoring from behavior changes, infrastructure from feature
   logic.
 - The branch should tell a story: setup, then implementation, then wiring it together.
-- Clean up history with interactive rebase before opening the PR. If the branch is already pushed,
-  rebase and force-push with `--force-with-lease` (feature branches only, never main or develop).
+- Clean up history before opening the PR with the Fast History Rework recipe below. If the branch
+  is already pushed, force-push with `--force-with-lease` (feature branches only, never main or
+  develop).
 
 ## Fast History Rework
 

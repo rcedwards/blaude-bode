@@ -1,7 +1,7 @@
 ---
 # REQUIRED
 name: git-best-practices-agent
-description: Spawn this subagent when working with git operations, commit messages, branch naming, pull request hygiene, or local history cleanup.
+description: Spawn this subagent only for large, unattended git history rewrites the user does not need to wait on (splitting, squashing, reordering, or rewording many commits). Do small rewrites, commit messages, branch names, and PR content in the main session with the git-conventions skill.
 
 # Claude-only
 model: sonnet
