@@ -14,9 +14,9 @@ description: >
 
 This skill covers correct mermaid.js syntax for all diagram types, with emphasis on the parser pitfalls that cause silent failures or broken renders.
 
-## Critical Rules (applies to ALL diagram types)
+## Rules for all diagram types
 
-These are the most common causes of broken mermaid diagrams. Internalize them before writing any diagram.
+These are the most common causes of broken mermaid diagrams.
 
 ### 1. Never use literal `\n` in node text or labels
 

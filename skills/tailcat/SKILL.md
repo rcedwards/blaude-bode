@@ -23,8 +23,8 @@ bootstraps through a DERP relay, then upgrades to direct UDP when NAT traversal 
 routing or DNS changes. Installed with `brew install tailcat`.
 
 Full docs: `tailcat readme`. Per-command flags: `tailcat <subcommand> --help`. Prefer these over
-the GitHub README, which tracks main and documents features (`perf`, `serve` port mappings like
-`5555:10.0.0.5:5555`) that v0.7.0 does not have. Check `tailcat version` if a documented command
+the GitHub README, which tracks main and can document features (`perf`, `serve` port mappings like
+`5555:10.0.0.5:5555`) the installed release lacks. Check `tailcat version` if a documented command
 fails.
 
 ## Check first: does the other end run tailcat?
