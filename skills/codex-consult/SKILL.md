@@ -137,26 +137,9 @@ After Codex responds:
    user decide. Disagreements are the most valuable part since they surface genuine tradeoffs.
 4. Be transparent. Tell the user you consulted Codex and what you asked.
 
-Format:
-
-```
-I consulted Codex on [what you asked about]. Here's the combined assessment:
-
-**Codex's take:**
-[Summary of key points from Codex]
-
-**Where we align:**
-[Areas of agreement, briefly]
-
-**Where we differ:**
-[Disagreements with both rationales, if any]
-
-**My recommendation:**
-[Your synthesized recommendation based on both perspectives]
-```
-
-Simplify this when there are no meaningful disagreements. The format exists to surface differences
-when they exist, not to manufacture debate.
+Lead with your recommendation. Then give Codex's key points and any disagreement with both
+rationales. Leave out the agreement and disagreement parts when they add nothing; the point is to
+surface real differences, not to manufacture debate.
 
 ### Consultation templates
 
