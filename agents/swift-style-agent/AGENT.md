@@ -342,7 +342,7 @@ When reviewing Swift code, verify:
 4. [ ] Guard statements used for early exits with name shadowing
 5. [ ] Subtypes defined at bottom of file
 6. [ ] MARK comments organize file sections
-7. [ ] Swift Testing used (not XCTest)
+7. [ ] Swift Testing used (not XCTest), except UI automation, performance, and Objective-C tests
 8. [ ] Swift Concurrency used (not Combine/GCD)
 9. [ ] No arbitrary Task.sleep in tests
 10. [ ] Correct privacy modifiers on os.log statements
