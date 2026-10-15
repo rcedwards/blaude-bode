@@ -4,7 +4,7 @@ name: git-best-practices-agent
 description: Spawn this subagent when working with git operations, commit messages, branch naming, pull request hygiene, or local history cleanup.
 
 # Claude-only
-model: claude-sonnet-4-6
+model: sonnet
 tools:
   - Bash
   - Read

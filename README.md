@@ -164,7 +164,7 @@ excluded_hosts:
   - codex
 
 # Claude-only (Claude ignores unknown fields like codex:)
-model: claude-sonnet-4-6
+model: sonnet
 tools:
   - Bash
   - Read
@@ -192,7 +192,7 @@ Write instructions in plain markdown.
 | `name` | yes | yes | yes | Used as identifier in both tools |
 | `description` | yes | yes | yes | Shown in Claude picker; used by Codex for agent selection |
 | `excluded_hosts` | no | controls install | controls generation | YAML list of hosts to hide from. Valid values: `claude`, `codex`. Omit for all hosts |
-| `model` | no | yes | no | Claude model ID; Codex model goes in `codex.model` |
+| `model` | no | yes | no | Claude model alias (`opus`, `sonnet`, `haiku`, `inherit`) so the agent tracks the newest model in that class; a full model ID pins one version. Codex model goes in `codex.model` |
 | `tools` | no | yes | no | Pre-approved tools for Claude |
 | `codex.model` | no | no | yes | Codex model ID |
 | `codex.model_reasoning_effort` | no | no | yes | `high` or `low` |

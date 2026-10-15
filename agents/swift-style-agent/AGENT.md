@@ -8,7 +8,7 @@ description: >
   comments, and checking whether an API feels idiomatic at the call site.
 
 # Claude-only
-model: claude-sonnet-4-6
+model: sonnet
 tools:
   - Bash
   - Read

@@ -9,7 +9,7 @@ description: >
   in a Swift target.
 
 # Claude-only
-model: claude-sonnet-4-6
+model: sonnet
 tools:
   - Bash
   - Read

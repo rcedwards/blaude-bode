@@ -9,7 +9,7 @@ description: >
   edits the implementation.
 
 # Claude-only
-model: claude-opus-5
+model: opus
 tools:
   - Bash
   - Read
