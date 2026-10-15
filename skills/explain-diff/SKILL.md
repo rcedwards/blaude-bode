@@ -6,8 +6,7 @@ description: >
   diff", "explain this PR", "walk me through this change", "what does this branch do",
   "write up this change", or "brief me on this commit". Covers both inline text output
   and a shareable self-contained HTML file; the user picks HTML by saying "html",
-  "file", or "shareable". Replaces the former explain-diff-html and explain-diff-text
-  skills.
+  "file", or "shareable".
 ---
 
 # Explain Diff
@@ -27,7 +26,7 @@ tells them something the diff title does not.
 3. Pick the format. Default is markdown inline in the reply. Produce HTML when the user
    says "html", "file", or "shareable". Include the Quiz section only when the user asks
    for a quiz.
-4. Fill the template below, count the words, and cut to the budget.
+4. Fill the template below and cut to the length rule.
 
 ## Template
 
@@ -54,15 +53,11 @@ bullet ends with a `path:line`.
 **Quiz** (only when requested). Five multiple-choice questions that need the substance of
 the change to answer. Answers and per-option feedback go in a separate section at the end.
 
-## Budget
+## Length
 
-| Changed lines in diff | Total words |
-|---|---|
-| under 300 | 200 to 350 |
-| 300 to 1000 | 350 to 550 |
-| over 1000 | 550 to 800 |
-
-Hit the budget by selection, not compression. Cut a sentence when the reader could infer
+Scale the brief to the diff: a small fix reads in under a minute, and a large change gets only
+as much more as its intent, hidden dependencies, and risks need. Hit the length by selection,
+not compression. Cut a sentence when the reader could infer
 it from the diff or from knowing the codebase. Keep it when it states intent, a hidden
 dependency, or a risk.
 
@@ -116,7 +111,7 @@ error rather than on the assertion. `TrailheadServiceTests.swift:101`,
 
 ## HTML mode
 
-Same content, same budget, rendered as one self-contained file with inline CSS and no
+Same content and length, rendered as one self-contained file with inline CSS and no
 external assets.
 
 1. Path: `/tmp/YYYY-MM-DD-explain-<slug>.html` with today's date. Run `open` on it when
