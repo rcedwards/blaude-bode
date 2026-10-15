@@ -23,9 +23,9 @@ These are the most common causes of broken mermaid diagrams.
 The mermaid parser does not interpret `\n` as a newline in most contexts. It either renders literally or breaks parsing.
 
 **For line breaks, use one of these approaches:**
-- `<br/>` tags inside quoted strings (works in flowchart nodes, NOT in sequence diagram messages or subgraph titles)
+- `<br/>` tags inside quoted strings. They break lines in flowchart nodes, subgraph titles, and sequence diagram
+  messages and notes (checked with mermaid-cli 11.12; older renderers may differ)
 - Markdown strings with actual newlines (wrap text in backtick-quotes): `` "`Line 1\nLine 2`" `` where `\n` is an actual newline character
-- For sequence diagram notes: use `<br/>` in the note text
 
 **What breaks:**
 ```
@@ -212,8 +212,6 @@ box Purple Team Alpha
     participant B
 end
 ```
-
-**Gotcha**: `<br/>` does NOT work in sequence diagram message text. Use `<br>` in notes only.
 
 ### Class Diagram
 
