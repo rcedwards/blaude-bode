@@ -121,7 +121,8 @@ newer develop that broke the final-tree check.
 
 1. Make all code changes at the tip first, as plain commits, and test there once. The tip is the
    "tested tip".
-2. Back up: `git branch <branch>-backup-<tag> <tested-tip>`.
+2. Back up: `git branch <branch>-backup-<tag> <tested-tip>`. Ask the user once, for the whole
+   rework, before skipping repo hooks on the rebuilt commits (org policy requires it).
 3. Map ownership: `git show --stat --format= <sha>` for each original commit. A file that only one
    target commit touches can take its final content directly in that commit.
 4. Rebuild on the original merge base, never a newer develop:
@@ -136,8 +137,9 @@ newer develop that broke the final-tree check.
      a shared helper) conflict; keep both sides in the order the tested tip has them.
    - Insert new code at the same relative position as in the tested tip. Otherwise the last commit
      shows it as moved.
-   - Commit with `git -c core.hooksPath=/dev/null commit`: the tested tip already passed the
-     hooks, and step 5 proves the trees match.
+   - Commit with `git commit --no-verify`: the tested tip already passed the repo hooks, and
+     step 5 proves the trees match. Keep `git commit` adjacent so the Claude commit guard still
+     checks each rebuilt message.
 5. Verify statically. No builds or tests:
    - `git diff --stat <tested-tip> HEAD` must be empty.
    - For each commit, check that no symbol appears before the commit that introduces it:
