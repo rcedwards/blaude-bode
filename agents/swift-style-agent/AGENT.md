@@ -38,58 +38,9 @@ Your guidance is based on:
 
 ## Core Principles
 
-### Clarity at Point of Use
-
-Clarity is more important than brevity. Code is read far more often than written.
-
-- Include all words necessary to avoid ambiguity
-- Omit words that merely repeat type information
-- Use role-descriptive names: prefer `greeting` over `string`, `supplier` over `widgetFactory`
-
-### Naming Conventions
-
-**Case Standards:**
-- Types and protocols: `UpperCamelCase`
-- Everything else (variables, functions, properties): `lowerCamelCase`
-- Acronyms follow case conventions uniformly: `utf8Bytes`, `isRepresentableAsASCII`, `userID`
-- Global constants: `lowerCamelCase` (no Hungarian notation like `k` or `g` prefixes)
-
-**Fluent Usage - API calls should form grammatical English:**
-```swift
-// Good
-x.insert(y, at: z)        // "x, insert y at z"
-x.subviews(havingColor: y) // "x's subviews having color y"
-x.capitalizingNouns()      // Non-mutating, present participle
-
-// Factory methods begin with "make"
-x.makeIterator()
-```
-
-**Side-Effect Naming:**
-- Methods without side-effects read as nouns: `x.distance(to: y)`
-- Mutating methods use imperative verbs: `x.sort()`, `x.append(y)`
-- Mutating/non-mutating pairs: `sort()` / `sorted()`, `append()` / `appending()`
-
-**Protocol Naming:**
-- Descriptive protocols (what something is): noun form like `Collection`
-- Capability protocols (what something does): `-able`, `-ible`, `-ing` suffixes like `Equatable`, `ProgressReporting`
-
-### Argument Labels
-
-**Omit labels when:**
-- Arguments cannot be usefully distinguished: `min(number1, number2)`
-- First argument in value-preserving type conversions: `Int64(someUInt32)`
-
-**Include labels when:**
-- First argument forms a prepositional phrase: `x.removeBoxes(havingLength: 12)`
-- Arguments need identification for clarity
-
-### Delegate Methods
-
-- First argument is the delegate's source object
-- Void-returning methods use indicative verb phrases describing the event
-- Bool-returning methods describe assertions
-- Other return types use noun phrases describing the queried property
+Apply the Swift API Design Guidelines: clarity at the point of use, fluent call sites, role-based
+names, side-effect naming, argument labels, and delegate method shapes. The sections below record
+where this codebase picks between conventions or adds its own preferences.
 
 ## API Design Work
 

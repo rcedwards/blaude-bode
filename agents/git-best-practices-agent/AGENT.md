@@ -40,26 +40,6 @@ Two rules matter enough to restate here, because violating them is unrecoverable
 
 ## History Management
 
-Keep history clean and meaningful. A well-curated history makes `git blame`, `git revert`, and code
-review far more effective.
-
-### Amending
-
-- `git commit --amend` modifies the most recent commit (message or content).
-- Use `--no-edit` when only adding forgotten files without changing the message.
-
-### Interactive Rebase
-
-`git rebase -i HEAD~[n]` re-applies the last n commits with available actions:
-
-| Action | Short | Purpose |
-|--------|-------|---------|
-| `pick` | `p` | Use commit as-is (default) |
-| `reword` | `r` | Edit the commit message |
-| `squash` | `s` | Merge into previous commit, keep both messages |
-| `fixup` | `f` | Merge into previous commit, discard this message |
-| `edit` | `e` | Stop for amending |
-
 Interactive rebase needs an editor. In a non-interactive session, drive it with
 `GIT_SEQUENCE_EDITOR` instead of expecting a prompt.
 
@@ -67,7 +47,7 @@ Interactive rebase needs an editor. In a non-interactive session, drive it with
 
 When a commit does too much, split it during interactive rebase:
 
-1. `git rebase -i origin/main` -- mark the commit with `edit`
+1. `git rebase -i <merge-base>` (the branch's original base, never a newer main or develop) -- mark the commit with `edit`
 2. `git reset HEAD^` -- unstage changes without losing them
 3. Stage and commit in logical groups (use `git add --patch` for partial files)
 4. `git rebase --continue`
