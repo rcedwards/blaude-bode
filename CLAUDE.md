@@ -35,3 +35,10 @@ This repo stores shared skill and agent source files for Claude Code and Codex.
 - Keep markdown bodies shared unless the distinction is unavoidable.
 - Codex strips Claude-only frontmatter, so required operational steps should also be described in the body when they matter for correctness.
 - Prefer extending `build.sh` and `install.sh` instead of creating duplicate Claude-only and Codex-only source files.
+
+## Skill validation
+
+Use `uv run --with pyyaml python ~/.codex/skills/.system/skill-creator/scripts/quick_validate.py dist/codex/skills/<name>`
+for the Codex skill validator. The first run may need network access to fetch PyYAML.
+Run `./build.sh` first; validate generated skills because canonical Claude frontmatter
+can include keys the Codex validator rejects. The build checks skills excluded from Codex.

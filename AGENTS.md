@@ -45,3 +45,18 @@ This repo is the source of truth for shared Claude/Codex skills and subagents.
 - Prefer improving the build/install pipeline over duplicating host-specific source files.
 - Prefer `bin/` or files co-located with a skill/agent before introducing a new top-level distribution mechanism.
 - If you add new metadata, document whether Claude, Codex, or both consume it.
+
+## Skill validation
+
+Run the Codex skill validator with its YAML dependency available:
+
+```bash
+uv run --with pyyaml python ~/.codex/skills/.system/skill-creator/scripts/quick_validate.py dist/codex/skills/<name>
+```
+
+The first run may need network access to fetch PyYAML. Do not fall back to system
+Python when it reports `ModuleNotFoundError: No module named 'yaml'`.
+
+Run `./build.sh` first. Validate generated Codex skills, since canonical Claude
+frontmatter can contain host-specific keys the Codex validator rejects. Skills
+excluded from Codex are checked by the repository build instead.
