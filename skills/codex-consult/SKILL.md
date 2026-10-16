@@ -18,9 +18,9 @@ excluded_hosts:
 
 Call Codex (GPT) non-interactively from Claude Code. Two modes of operation:
 
-- **Consult**: Get a second opinion. Codex runs in read-only mode (the default). You wait for
+- **Consult**: Get a second opinion. Codex runs in explicit read-only mode (`-s read-only`). You wait for
   the response, synthesize it with your own perspective, and present both to the user.
-- **Delegate**: Hand off independent work. Codex runs with `--full-auto` (workspace-write). You
+- **Delegate**: Hand off independent work. Codex runs with `-s workspace-write`. You
   run it in the background and continue working. You review the output before reporting it done.
 
 ## Choosing the right mode
@@ -55,10 +55,10 @@ Sandbox modes in non-interactive (`codex exec`) mode:
 
 | Mode | Flag | Behavior |
 |------|------|----------|
-| Read-only | (default, no flag) | Reads anywhere, writes and commands blocked |
-| Workspace-write | `--full-auto` | Pre-approves edits and commands in workspace |
+| Read-only | `-s read-only` | Reads and read-only commands; writes blocked |
+| Workspace-write | `-s workspace-write` | Allows workspace edits; approvals follow configuration |
 
-Use read-only (default) for consultations, `--full-auto` for delegations.
+Use explicit read-only for consultations, `-s workspace-write` for delegations.
 
 Progress output goes to stderr, final result to stdout. The `-o` flag captures the final message
 to a file for clean reading.
@@ -89,11 +89,11 @@ concurrent writes? (2) should any steps be reordered? (3) what's the rollback pa
 
 ### Running the consultation
 
-Create a unique temp file, then run Codex in read-only mode (no `--full-auto`):
+Create a unique temp file, then run Codex in read-only mode (`-s read-only`):
 
 ```bash
 out="$(mktemp /tmp/codex-consult.XXXXXX)"
-cat <<'PROMPT' | codex exec --ephemeral -o "$out" -
+cat <<'PROMPT' | codex exec -s read-only --ephemeral -o "$out" -
 Your prompt here.
 PROMPT
 ```
@@ -104,7 +104,7 @@ If you are NOT inside a git repository (e.g., reviewing files in ~/.claude/), ad
 To set a specific working directory (useful when running from a different context):
 
 ```bash
-cat <<'PROMPT' | codex exec --ephemeral -C /path/to/project -o "$out" -
+cat <<'PROMPT' | codex exec -s read-only --ephemeral -C /path/to/project -o "$out" -
 Your prompt here.
 PROMPT
 ```
@@ -112,12 +112,12 @@ PROMPT
 To attach screenshots or images for UI-related consultations:
 
 ```bash
-codex exec --ephemeral -i screenshot.png -o "$out" "Review this UI and suggest improvements"
+codex exec -s read-only --ephemeral -i screenshot.png -o "$out" "Review this UI and suggest improvements"
 ```
 
 Flags:
-- (no `--full-auto`): Read-only mode. Codex can read the entire codebase but cannot write or
-  run commands. This is the correct mode for consultations.
+- `-s read-only`: Explicitly block writes while allowing read-only commands. Do not rely on the
+  configured default sandbox mode for consultations.
 - `--ephemeral`: Don't persist the session (one-shot consultation).
 - `-C <path>`: Set working directory explicitly.
 - `-i <path>`: Attach image(s) for visual context.
@@ -242,11 +242,11 @@ Before delegating, verify:
 
 ### Running the delegation
 
-Create a unique temp file, then run Codex with `--full-auto` in the background:
+Create a unique temp file, then run Codex with `-s workspace-write` in the background:
 
 ```bash
 out="$(mktemp /tmp/codex-delegate.XXXXXX)"
-cat <<'PROMPT' | codex exec --full-auto -o "$out" -
+cat <<'PROMPT' | codex exec -s workspace-write -o "$out" -
 [TASK DESCRIPTION WITH FULL CONTEXT]
 PROMPT
 ```
@@ -263,7 +263,7 @@ incomplete work, resume the session:
 codex exec resume --last "follow-up instructions here"
 ```
 
-Resume inherits the sandbox settings from the original session, so do not pass `--full-auto` again.
+Resume inherits the sandbox settings from the original session, so do not pass `-s workspace-write` again.
 
 ### Prompting for delegation
 
@@ -349,19 +349,19 @@ Use the built-in review subcommand for code review delegation:
 
 ```bash
 out="$(mktemp /tmp/codex-review.XXXXXX)"
-codex exec review --base <target-branch> -o "$out"
+codex exec -s read-only review --base <target-branch> -o "$out"
 ```
 
 Or for uncommitted changes:
 
 ```bash
-codex exec review --uncommitted -o "$out"
+codex exec -s read-only review --uncommitted -o "$out"
 ```
 
 Or for a specific commit:
 
 ```bash
-codex exec review --commit <sha> -o "$out"
+codex exec -s read-only review --commit <sha> -o "$out"
 ```
 
 The built-in `codex exec review` is purpose-built for code review and produces better structured
@@ -397,6 +397,6 @@ Do not trust Codex's self-reported success. Verify before reporting.
 - **Task granularity.** Break complex work into focused, single-purpose tasks. Files over ~2000
   lines slow Codex down since it reads the entire file multiple times. Consider pointing Codex
   at specific line ranges or splitting the task.
-- **Sandbox limits.** `--full-auto` gives Codex sandboxed workspace-write access. Delegation
-  tasks must be completable within that sandbox without extra approvals. If a task needs network
-  access, elevated permissions, or interactive input, it will fail silently.
+- **Sandbox limits.** `-s workspace-write` gives Codex sandboxed workspace-write access. Delegation
+  tasks must fit the configured writable roots and network policy. `-s` selects the sandbox; it
+  does not grant unrestricted network access or disable approval requirements.
