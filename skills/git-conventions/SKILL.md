@@ -45,7 +45,9 @@ checks block AI signatures and messages over 350 characters, and an LLM gate blo
 bundle unrelated changes or whose subject under-describes the diff. The gate fails open, so an
 error or timeout never blocks a commit.
 
-Other hosts have no such hook, so the rules above must be followed by hand.
+Robert's Codex setup also registers a `Bash` PreToolUse adapter for this guard.
+New or changed Codex hooks require trust review through `/hooks` before they run.
+Follow the rules above even when a hook is unavailable or skips a command.
 
 ## Branch Naming
 
