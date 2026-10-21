@@ -122,6 +122,7 @@ assert_contains "$consult_skill" "name: claude-code-consult"
 assert_contains "$consult_skill" "Use local \`claude\` as an external reviewer after building context in Codex."
 assert_file_exists "$REPO_ROOT/dist/codex/skills/claude-code-consult/agents/openai.yaml"
 assert_file_executable "$REPO_ROOT/dist/codex/skills/claude-code-consult/scripts/claude-code-consult.sh"
+python3 "$REPO_ROOT/skills/claude-code-consult/scripts/test_consult.py"
 
 for agent_file in "$REPO_ROOT/dist/codex/agents"/*.toml; do
   assert_file_exists "$agent_file"

@@ -23,7 +23,9 @@ Use local `claude` as an external reviewer after building context in Codex. Keep
    - what you already tried or decided
    - the exact question you want answered
 4. Attach only the files that matter. Prefer one to three focused files or excerpts over broad repository dumps.
-5. Run the wrapper script and use Claude's output as input to your own judgment.
+5. Run the wrapper script and use Claude's output as input to your own judgment. It uses safe mode with tools disabled, reads the packet from stdin, and does not persist a local Claude session. Requires a Claude CLI supporting `--safe-mode`, `--tools`, and `--no-session-persistence`.
+
+Attached file contents and prompt text are sent to the authenticated Claude provider. Keep the packet focused on the requested review and omit secrets. An approval-review rejection happens before CLI execution; it is not an authentication or wrapper failure. If a rejection requires specific payload approval, explain the selected files and destination, obtain that approval, and retry only after it arrives. Do not broaden or reroute the payload to bypass the rejection.
 
 ## Delegation Guidance
 
@@ -118,7 +120,7 @@ Check auth with:
 claude auth status
 ```
 
-If it does not report `"loggedIn": true`, run:
+If it reports `"loggedIn": false` in an environment with access to the normal credentials, run:
 
 ```bash
 claude auth login
@@ -127,3 +129,5 @@ claude auth login
 If `claude auth status` is false inside Codex but `claude --print "Reply with OK only."` works in your normal terminal, treat that as a sandbox or process-isolation issue rather than a bad login. Re-run the Claude command outside the sandbox or with escalated permissions.
 
 If the command fails because the environment blocks outbound access, surface that constraint and continue without the consultation.
+
+If the wrapper reports an unsupported option, check `claude --version` and `claude --help` and update the CLI through its normal installation method. Do not silently remove the consultation restrictions. Local usage and packet errors should be resolved before retrying authentication or network access.

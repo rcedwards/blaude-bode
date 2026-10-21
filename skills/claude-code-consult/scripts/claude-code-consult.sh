@@ -16,12 +16,6 @@ If prompt arguments are omitted, the script reads the prompt from stdin.
 EOF
 }
 
-tool_path="${CLAUDE_BIN:-$(command -v claude || true)}"
-if [[ -z "$tool_path" ]]; then
-  echo "Missing executable: claude" >&2
-  exit 1
-fi
-
 mode="${1:-}"
 if [[ -z "$mode" || "$mode" == "-h" || "$mode" == "--help" ]]; then
   usage
@@ -37,19 +31,6 @@ case "$mode" in
     exit 1
     ;;
 esac
-
-status_output="$("$tool_path" auth status 2>/dev/null || true)"
-if [[ "$status_output" != *'"loggedIn": true'* ]]; then
-  cat >&2 <<'EOF'
-Claude CLI is not authenticated in this process.
-
-Run `claude auth status` in the same environment where this command will run.
-If Claude works in your normal terminal but fails here, the current process likely
-cannot see the authenticated Claude session. In Codex, rerun the command outside
-the sandbox or with escalated permissions instead of repeating login blindly.
-EOF
-  exit 1
-fi
 
 declare -a files=()
 model="${CLAUDE_MODEL:-}"
@@ -89,6 +70,10 @@ while (($#)); do
       shift
       break
       ;;
+    -*)
+      echo "Unknown option: $1 (use -- before a dash-leading prompt)" >&2
+      exit 1
+      ;;
     *)
       break
       ;;
@@ -126,7 +111,6 @@ final_prompt="$template"$'\nUser context:\n'"$prompt"
 if ((${#files[@]})); then
   final_prompt+=$'\n\nReferenced files:\n'
   for file_path in "${files[@]}"; do
-    file_spec="$file_path"
     range_spec=""
     resolved_path="$file_path"
 
@@ -135,24 +119,34 @@ if ((${#files[@]})); then
       range_spec="${BASH_REMATCH[2]}-${BASH_REMATCH[3]}"
     fi
 
-    if [[ ! -r "$resolved_path" ]]; then
+    if [[ ! -f "$resolved_path" || ! -r "$resolved_path" ]]; then
       echo "Unreadable file: $resolved_path" >&2
       exit 1
     fi
 
     if [[ -n "$range_spec" ]]; then
-      start_line="${range_spec%-*}"
-      end_line="${range_spec#*-}"
-      if ((start_line > end_line)); then
+      start_digits="${range_spec%-*}"
+      end_digits="${range_spec#*-}"
+      if [[ ${#start_digits} -gt 9 || ${#end_digits} -gt 9 ]]; then
+        echo "Invalid line range for $resolved_path: $range_spec" >&2
+        exit 1
+      fi
+      start_line=$((10#$start_digits))
+      end_line=$((10#$end_digits))
+      if ((start_line < 1 || start_line > end_line || end_line - start_line >= 400)); then
         echo "Invalid line range for $resolved_path: $range_spec" >&2
         exit 1
       fi
       file_contents="$(sed -n "${start_line},${end_line}p" "$resolved_path" | nl -ba -v "$start_line")"
+      if [[ -z "$file_contents" ]]; then
+        echo "Empty line range for $resolved_path: $range_spec" >&2
+        exit 1
+      fi
       final_prompt+=$'\n=== '"$resolved_path:$range_spec"$' ===\n```text\n'"$file_contents"$'\n```\n'
       continue
     fi
 
-    line_count="$(wc -l < "$resolved_path" | tr -d ' ')"
+    line_count="$(awk 'END { print NR }' "$resolved_path")"
     if ((line_count > 400)); then
       cat >&2 <<EOF
 Refusing to inline $resolved_path because it has $line_count lines.
@@ -167,7 +161,38 @@ EOF
   done
 fi
 
-cmd=("$tool_path" "--print" "--output-format" "text")
+tool_path="${CLAUDE_BIN:-$(command -v claude || true)}"
+if [[ -z "$tool_path" ]]; then
+  echo "Missing executable: claude" >&2
+  exit 1
+fi
+
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "Missing executable: python3 (required to parse Claude auth status)" >&2
+  exit 1
+fi
+help_output="$("$tool_path" --help)"
+for required_option in --safe-mode --tools --no-session-persistence; do
+  if [[ "$help_output" != *"$required_option"* ]]; then
+    echo "Claude CLI lacks $required_option; update the CLI before consulting." >&2
+    exit 1
+  fi
+done
+
+# Parse JSON rather than depending on auth status whitespace.
+status_output="$("$tool_path" auth status 2>/dev/null || true)"
+if ! printf '%s' "$status_output" | python3 -I -c 'import json, sys; sys.exit(0 if json.load(sys.stdin).get("loggedIn") is True else 1)' 2>/dev/null; then
+  cat >&2 <<'EOF'
+Claude authentication could not be verified in this process.
+Run `claude auth status` in the same environment. If Claude works in your normal
+terminal, retry with the required sandbox permissions rather than logging in again.
+EOF
+  exit 1
+fi
+
+# Consultation uses the supplied packet, without tools or local customizations.
+cmd=("$tool_path" "--print" "--output-format" "text"
+  "--safe-mode" "--tools" "" "--no-session-persistence")
 if [[ -n "$model" ]]; then
   cmd+=("--model" "$model")
 fi
@@ -175,4 +200,4 @@ if [[ -n "$effort" ]]; then
   cmd+=("--effort" "$effort")
 fi
 
-exec "${cmd[@]}" "$final_prompt"
+"${cmd[@]}" <<<"$final_prompt"
