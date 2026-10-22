@@ -235,7 +235,7 @@ The intended authoring model is:
 5. Run `./install.sh` once to create the Claude symlink and refresh Codex output if needed.
 6. Edit the skill body freely. Claude picks up changes immediately via symlink. For Codex, re-run `./build.sh`.
 
-If git hooks are installed with `./bin/install-git-hooks`, staged changes under `skills/` automatically run `./build.sh` before commit. Adding, removing, or renaming a skill still requires `./install.sh --host codex` once so local Codex symlinks are refreshed.
+If git hooks are installed with `./bin/install-git-hooks`, staged changes under `skills/` automatically run `./build.sh` before commit. Adding, removing, or renaming a skill automatically refreshes registrations for all detected hosts after commit, checkout, or merge.
 
 ### Skills with supporting files
 
@@ -264,7 +264,7 @@ Codex mirrors the same support files into `dist/codex/skills/[name]/`, then inst
 5. Run `./install.sh` once to create symlinks for both Claude and Codex.
 6. Edit the agent body freely. Claude picks it up immediately. For Codex, re-run `./build.sh`.
 
-If git hooks are installed with `./bin/install-git-hooks`, staged changes under `agents/` automatically run `./build.sh` before commit. Adding, removing, or renaming an agent still requires `./install.sh --host codex` once so local Codex symlinks are refreshed.
+If git hooks are installed with `./bin/install-git-hooks`, staged changes under `agents/` automatically run `./build.sh` before commit. Adding, removing, or renaming an agent automatically refreshes registrations for all detected hosts after commit, checkout, or merge.
 
 ---
 
@@ -279,7 +279,9 @@ Run this once per clone to enable repo-local hooks:
 The tracked hooks do three things:
 - `pre-commit` runs `./build.sh` when staged changes touch `skills/`, `agents/`, `build.sh`, or `bin/lib/frontmatter.sh`.
 - `post-checkout` and `post-merge` run `./build.sh` when branch changes touch those same paths.
-- When a `SKILL.md` or `AGENT.md` entrypoint is added, removed, or renamed, the hook prints a reminder to run `./install.sh --host codex`.
+- When a `SKILL.md` or `AGENT.md` entrypoint is added, removed, or renamed, `post-commit`, `post-checkout`, and `post-merge` run `./install.sh` for all detected hosts instead. Body-only changes do not reinstall registrations.
+
+Refresh failures print a recovery command and never block Git operations. The nested private repo also runs the installer after commit, checkout, and merge.
 
 These hooks keep generated Codex artifacts fresh for installed symlinks. They do not make a running Codex or Claude session hot-reload its available skills or subagents.
 

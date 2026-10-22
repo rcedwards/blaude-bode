@@ -20,7 +20,7 @@ This repo stores shared skill and agent source files for Claude Code and Codex.
 ## Auto-install hooks
 
 - `./bin/install-git-hooks` sets `core.hooksPath=.githooks` for BOTH this repo and the nested `private/` repo (run it once per clone).
-- This repo: `pre-commit`/`post-merge`/`post-checkout` rebuild `dist/` when Codex source changes; `post-commit` runs `./install.sh` (all hosts) when a skill/agent entrypoint changed.
+- This repo: `pre-commit`/`post-merge`/`post-checkout` rebuild `dist/` when Codex source changes; `post-commit`/`post-merge`/`post-checkout` run `./install.sh` (all hosts) instead when a skill/agent entrypoint is added, removed, or renamed.
 - `private/` repo: `post-commit`/`post-merge`/`post-checkout` run this repo's `./install.sh` (all hosts) so private skill changes auto-install too.
 - Hooks tolerate `claude`/`codex` not being on PATH (e.g. GUI git contexts) and never block a commit.
 

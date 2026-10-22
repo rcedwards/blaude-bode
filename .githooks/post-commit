@@ -1,18 +1,12 @@
 #!/usr/bin/env bash
-# After a commit that adds/removes/renames a skill or agent entrypoint, re-install
-# for ALL detected hosts (Claude + Codex) so local symlinks stay in sync without a
-# manual install step. Runs post-commit so it never blocks or slows the commit.
+# Registration changes need installation after the commit, once tracked paths
+# reflect the new skill/agent set. Body edits were built by pre-commit.
 set -euo pipefail
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT"
 
-git rev-parse --verify HEAD~1 >/dev/null 2>&1 || exit 0
-
-if git diff --name-only HEAD~1 HEAD | grep -qE '^(skills|agents)/'; then
-  echo "blaude-bode: skill/agent entrypoints changed; installing (all detected hosts)"
-  if ! install_out="$(./install.sh 2>&1)"; then
-    echo "blaude-bode: install failed; run ./install.sh by hand (if sandboxed, escalate). Last output:"
-    printf '%s\n' "$install_out" | tail -n 5 | sed 's/^/  /'
-  fi
-fi
+# diff-tree --root also handles a repository's first commit.
+git diff-tree --root --no-commit-id --name-status -r HEAD | .githooks/lib/refresh-codex-artifacts --install-only || {
+  echo "blaude-bode: refresh failed; run ./install.sh by hand" >&2
+}

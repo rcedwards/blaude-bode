@@ -6,6 +6,7 @@ cd "$REPO_ROOT"
 
 source "$REPO_ROOT/bin/lib/frontmatter.sh"
 python3 "$REPO_ROOT/bin/tests/test_frontmatter.py"
+bash "$REPO_ROOT/test-git-hooks.sh"
 
 cleanup_paths=()
 

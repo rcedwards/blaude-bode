@@ -4,8 +4,12 @@ set -euo pipefail
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT"
 
-git diff --cached --name-status --diff-filter=ACMRD | .githooks/lib/refresh-codex-artifacts
+git diff --cached --name-status --diff-filter=ACMRD | .githooks/lib/refresh-codex-artifacts || {
+  echo "blaude-bode: refresh failed; run ./build.sh by hand" >&2
+}
 
 if git ls-files --error-unmatch dist/codex >/dev/null 2>&1; then
-  git add dist/codex
+  git add dist/codex || {
+    echo "blaude-bode: staging generated artifacts failed; run git add dist/codex by hand" >&2
+  }
 fi

@@ -31,7 +31,7 @@ matches_installed_entrypoint() {
 }
 
 needs_refresh=false
-needs_install_hint=false
+needs_install=false
 
 while IFS=$'\t' read -r status path extra_path; do
   [[ -n "${status:-}" ]] || continue
@@ -50,20 +50,23 @@ while IFS=$'\t' read -r status path extra_path; do
   case "$status" in
     A|D|R*|C*)
       if matches_installed_entrypoint "$path" || matches_installed_entrypoint "$final_path"; then
-        needs_install_hint=true
+        needs_install=true
       fi
       ;;
   esac
 done
 
-if ! $needs_refresh; then
-  exit 0
-fi
-
-echo "blaude-bode: refreshing generated Codex artifacts"
-./build.sh >/dev/null
-echo "blaude-bode: Codex artifacts refreshed"
-
-if $needs_install_hint; then
-  echo "blaude-bode: agent or skill entrypoints changed; run ./install.sh to refresh local symlinks (no args installs all detected hosts: Claude + Codex)"
+if $needs_install && [[ "${1:-}" == --install* ]]; then
+  echo "blaude-bode: skill/agent entrypoints changed; installing (all detected hosts)"
+  if ! install_out="$(./install.sh 2>&1)"; then
+    echo "blaude-bode: install failed; run ./install.sh by hand (if sandboxed, escalate). Last output:"
+    printf '%s\n' "$install_out" | tail -n 5 | sed 's/^/  /'
+  fi
+elif $needs_refresh && [[ "${1:-}" != --install-only ]]; then
+  echo "blaude-bode: refreshing generated Codex artifacts"
+  if ./build.sh >/dev/null; then
+    echo "blaude-bode: Codex artifacts refreshed"
+  else
+    echo "blaude-bode: build failed; run ./build.sh by hand" >&2
+  fi
 fi
