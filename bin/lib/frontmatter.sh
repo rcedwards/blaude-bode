@@ -136,9 +136,9 @@ frontmatter_get() {
             value = trimmed
             sub(("^" key2 ":[ \t]*"), "", value)
 
-            if (value == "|" || value == ">") {
+            if (value ~ /^[|>][-+]?$/) {
               collecting_block = 1
-              block_style = value
+              block_style = substr(value, 1, 1)
               block_value = ""
               block_indent = current_indent + 2
               break
@@ -160,9 +160,9 @@ frontmatter_get() {
           value = line
           sub(("^" key1 ":[ \t]*"), "", value)
 
-          if (value == "|" || value == ">") {
+          if (value ~ /^[|>][-+]?$/) {
             collecting_block = 1
-            block_style = value
+            block_style = substr(value, 1, 1)
             block_value = ""
             block_indent = 2
             break

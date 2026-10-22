@@ -5,6 +5,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$REPO_ROOT"
 
 source "$REPO_ROOT/bin/lib/frontmatter.sh"
+python3 "$REPO_ROOT/bin/tests/test_frontmatter.py"
 
 cleanup_paths=()
 
