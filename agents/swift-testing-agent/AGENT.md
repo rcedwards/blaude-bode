@@ -38,7 +38,7 @@ Write Swift Testing code, not XCTest patterns, and take API details from the ref
 Before writing tests, verify:
 - Target has **Enable Testing Frameworks** set to **Yes** in Build Settings (required for `import Testing` to resolve)
 - Test plan has **Use parallel execution** enabled (default and recommended)
-- For Linux/Windows projects: `swift-testing` SPM package is added to `Package.swift` (not needed for Apple platforms — it's bundled in Xcode)
+- With an official Swift 6+ toolchain (including Xcode 16+), `Testing` is bundled on Apple platforms, Linux, and Windows. Do not add a `swift-testing` package dependency just for Linux or Windows. For older or custom toolchains, verify compatibility before changing dependencies. See the [Swift Testing toolchain guidance](https://github.com/swiftlang/swift-testing#cross-platform-support).
 
 ---
 
@@ -171,9 +171,15 @@ Mark the function `async` and use `await`. No special setup needed.
 }
 ```
 
-### Confirmations (replaces XCTestExpectation)
+### Confirmations
 
-Use `await confirmation` when testing callback-based or delegate-based APIs:
+Use `confirmation` to check callback or delegate event counts during an operation.
+It checks the count when its body returns and does not wait for callbacks. Await an
+operation that completes after all relevant callbacks, including for `expectedCount: 0`.
+An API that only schedules work needs a completion signal or continuation inside the
+body. See [Testing asynchronous code](https://docs.swift.org/latest/documentation/testing/testing-asynchronous-code/).
+
+These examples assume the async operations return after all their callbacks finish:
 
 ```swift
 @Test("Delegate receives three updates")
@@ -181,21 +187,37 @@ func delegateNotifications() async {
     await confirmation("didUpdate called", expectedCount: 3) { confirm in
         let delegate = MockDelegate { confirm() }
         let sut = SystemUnderTest(delegate: delegate)
-        sut.performActionThatNotifiesThreeTimes()
+        await sut.performActionThatNotifiesThreeTimes()
     }
 }
 
-// Assert a callback is NEVER called
+// Assert no sync callback occurs during the completed logout operation
 @Test("Logout does not trigger sync")
 func logoutDoesNotSync() async {
     await confirmation("sync triggered", expectedCount: 0) { confirm in
         let mockSync = MockSyncEngine { confirm() }
-        AccountManager(syncEngine: mockSync).logout()
+        await AccountManager(syncEngine: mockSync).logout()
     }
 }
 ```
 
-For legacy completion-handler code, use `withCheckedThrowingContinuation` to bridge into async.
+For a legacy API with a single completion callback, bridge it with
+`withCheckedContinuation` (or `withCheckedThrowingContinuation` for throwing results):
+
+```swift
+await confirmation("operation completed") { confirm in
+    await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+        subject.onComplete = {
+            confirm()
+            continuation.resume()
+        }
+        subject.start()
+    }
+}
+```
+
+Only resume a continuation once. For repeated events, await a separate operation-completion
+signal rather than resuming on every event. Avoid sleeps as a substitute for completion.
 
 ---
 
@@ -235,10 +257,15 @@ extension Tag {
 @Test(.tags(.fast, .regression))
 func validationIsQuick() { ... }
 
-// CLI usage
-// swift test --filter .fast
-// swift test --skip .flaky
+// CLI tag filtering requires Swift 6.5+
+// swift test --filter tag:fast
+// swift test --skip tag:flaky
 ```
+
+Check the selected toolchain with `swift --version` before using these commands.
+On older toolchains, CLI `--filter` and `--skip` match test identifiers, not tags;
+use test identifiers or Xcode's tag selection. See
+[ST-0025](https://github.com/swiftlang/swift-evolution/blob/main/proposals/testing/0025-tag-based-test-execution-filtering.md).
 
 ---
 

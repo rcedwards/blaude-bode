@@ -172,12 +172,17 @@ struct FeatureTests {
 // Avoid
 try await Task.sleep(for: .seconds(1))
 
-// Prefer - use continuations, expectations, or signals
-await confirmation { confirm in
-    subject.onComplete = { confirm() }
+// Prefer - await the single completion callback
+await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+    subject.onComplete = { continuation.resume() }
     subject.start()
 }
 ```
+
+Use this continuation pattern only when the completion handler is called exactly once.
+For callback counts, `confirmation` checks when its body returns; await the operation's
+completion inside that body. It does not wait for callbacks on its own. See
+[Swift Testing's async guidance](https://docs.swift.org/latest/documentation/testing/testing-asynchronous-code/).
 
 ### Concurrency
 
