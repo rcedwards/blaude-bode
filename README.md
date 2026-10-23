@@ -89,7 +89,7 @@ Skills and agents are directory-scoped markdown sources. Each canonical source f
 
 - **Claude Code** gets source symlinks. Skills install as directory symlinks; agents install as markdown file symlinks.
 - **Codex** gets generated artifacts. `build.sh` parses frontmatter, preserves hook intent as manual parity notes, mirrors supporting files, and generates `dist/codex/skills/<name>/SKILL.md` plus `dist/codex/agents/*.toml`.
-- **Install** symlinks generated Codex skills into `~/.codex/skills/`, generated Codex agents into `~/.codex/agents/`, and canonical source content into `~/.claude/`.
+- **Install** symlinks generated Codex skills into `~/.codex/skills/` and canonical source content into `~/.claude/`. Generated Codex agents are copied into `~/.codex/agents/` because Codex rejects symlinked role files.
 - **Git hooks** are opt-in. `./bin/install-git-hooks` sets `core.hooksPath=.githooks` so staged canonical edits refresh generated Codex artifacts before commit, and branch changes refresh them after checkout or merge.
 
 ---
@@ -279,16 +279,17 @@ Run this once per clone to enable repo-local hooks:
 The tracked hooks do three things:
 - `pre-commit` runs `./build.sh` when staged changes touch `skills/`, `agents/`, `build.sh`, or `bin/lib/frontmatter.sh`.
 - `post-checkout` and `post-merge` run `./build.sh` when branch changes touch those same paths.
-- When a `SKILL.md` or `AGENT.md` entrypoint is added, removed, or renamed, `post-commit`, `post-checkout`, and `post-merge` run `./install.sh` for all detected hosts instead. Body-only changes do not reinstall registrations.
+- When a `SKILL.md` or `AGENT.md` entrypoint is added, removed, or renamed, or any file under `agents/` changes, `post-commit`, `post-checkout`, and `post-merge` run `./install.sh` for all detected hosts instead. Agent edits reinstall because Codex agents are copies; skill body edits reach Codex through the skill symlinks.
 
 Refresh failures print a recovery command and never block Git operations. The nested private repo also runs the installer after commit, checkout, and merge.
 
-These hooks keep generated Codex artifacts fresh for installed symlinks. They do not make a running Codex or Claude session hot-reload its available skills or subagents.
+These hooks keep generated Codex artifacts and installed agent copies fresh. They do not make a running Codex or Claude session hot-reload its available skills or subagents.
 
 If Codex advertises a named agent but spawning it returns `agent type is currently not available`,
-use a default agent with an explicit read-only review task and the relevant review instructions.
-Do not retry the same unavailable role in that session. A valid installed TOML file does not prove
-the running host can dispatch that role; check installation separately from runtime availability.
+check `~/.codex/logs_2.sqlite` for the preceding `core/src/agent/role.rs` warning. `failed to apply
+role to config: Too many levels of symbolic links` means the role file in `~/.codex/agents/` is a
+symlink; rerun `./install.sh` to replace it with a copy. Until the role works, give a default agent
+an explicit read-only review task and the relevant review instructions instead of retrying the role.
 
 For recurring sandbox failures, inspect the active turn's effective permissions before changing
 `~/.codex/config.toml`. Editing that file does not establish that an existing conversation adopted

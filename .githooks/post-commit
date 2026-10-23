@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Registration changes need installation after the commit, once tracked paths
-# reflect the new skill/agent set. Body edits were built by pre-commit.
+# Registration changes and agent edits need installation after the commit, once
+# tracked paths reflect the new skill/agent set. Skill body edits were built by
+# pre-commit and reach Codex through the installed skill symlinks.
 set -euo pipefail
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"

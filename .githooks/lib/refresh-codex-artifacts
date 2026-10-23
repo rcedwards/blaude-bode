@@ -54,10 +54,15 @@ while IFS=$'\t' read -r status path extra_path; do
       fi
       ;;
   esac
+
+  # Codex agents install as copies, so any agent change must reach ~/.codex/agents.
+  case "$final_path" in
+    agents/*) needs_install=true ;;
+  esac
 done
 
 if $needs_install && [[ "${1:-}" == --install* ]]; then
-  echo "blaude-bode: skill/agent entrypoints changed; installing (all detected hosts)"
+  echo "blaude-bode: skill/agent registrations or agent bodies changed; installing (all detected hosts)"
   if ! install_out="$(./install.sh 2>&1)"; then
     echo "blaude-bode: install failed; run ./install.sh by hand (if sandboxed, escalate). Last output:"
     printf '%s\n' "$install_out" | tail -n 5 | sed 's/^/  /'
