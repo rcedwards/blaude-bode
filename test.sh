@@ -132,7 +132,7 @@ for agent_file in "$REPO_ROOT/dist/codex/agents"/*.toml; do
   assert_contains "$agent_file" 'developer_instructions = """'
 done
 
-assert_contains "$REPO_ROOT/dist/codex/agents/git-best-practices-agent.toml" 'model = "gpt-5.4"'
+assert_not_contains "$REPO_ROOT/dist/codex/agents/git-best-practices-agent.toml" 'model = '
 assert_contains "$REPO_ROOT/dist/codex/agents/git-best-practices-agent.toml" 'nickname_candidates = ["Branch", "Commit", "Draft"]'
 assert_contains "$REPO_ROOT/dist/codex/agents/swift-style-agent.toml" 'nickname_candidates = ["Cedar", "Fluent", "Swiftline", "Canopy", "Ledger"]'
 assert_contains "$REPO_ROOT/dist/codex/agents/swift-testing-agent.toml" 'nickname_candidates = ["Harness", "Suite", "Verify"]'

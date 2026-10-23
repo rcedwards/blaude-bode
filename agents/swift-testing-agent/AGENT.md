@@ -19,7 +19,6 @@ tools:
 
 # Codex-only (Claude ignores this block)
 codex:
-  model: gpt-5.4
   model_reasoning_effort: high
   nickname_candidates:
     - Harness
