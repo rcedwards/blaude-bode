@@ -285,6 +285,11 @@ Refresh failures print a recovery command and never block Git operations. The ne
 
 These hooks keep generated Codex artifacts fresh for installed symlinks. They do not make a running Codex or Claude session hot-reload its available skills or subagents.
 
+If Codex advertises a named agent but spawning it returns `agent type is currently not available`,
+use a default agent with an explicit read-only review task and the relevant review instructions.
+Do not retry the same unavailable role in that session. A valid installed TOML file does not prove
+the running host can dispatch that role; check installation separately from runtime availability.
+
 ---
 
 ## bin/ convention
