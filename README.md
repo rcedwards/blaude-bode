@@ -290,6 +290,17 @@ use a default agent with an explicit read-only review task and the relevant revi
 Do not retry the same unavailable role in that session. A valid installed TOML file does not prove
 the running host can dispatch that role; check installation separately from runtime availability.
 
+For recurring sandbox failures, inspect the active turn's effective permissions before changing
+`~/.codex/config.toml`. Editing that file does not establish that an existing conversation adopted
+the change. On October 19, 2026, a resumed October 7 VS Code thread still recorded
+`network_access: false` and no extra writable roots, while a fresh October 19 thread recorded the
+configured network access and writable roots. Start a fresh conversation or reselect the custom
+permissions, then verify the effective policy and a small network/write probe.
+
+Protected `.git` and `.codex` paths can still require a scoped escalation under workspace-write.
+Treat those separately from network failures. Do not disable the sandbox or broaden writable
+roots to work around a conversation using old permissions.
+
 ---
 
 ## bin/ convention
