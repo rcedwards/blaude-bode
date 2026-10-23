@@ -295,8 +295,9 @@ For recurring sandbox failures, inspect the active turn's effective permissions 
 `~/.codex/config.toml`. Editing that file does not establish that an existing conversation adopted
 the change. On October 19, 2026, a resumed October 7 VS Code thread still recorded
 `network_access: false` and no extra writable roots, while a fresh October 19 thread recorded the
-configured network access and writable roots. Start a fresh conversation or reselect the custom
-permissions, then verify the effective policy and a small network/write probe.
+configured network access and writable roots. Subagents spawned from an old thread inherit its old
+policy even when they are created after the config change. Start a fresh conversation or reselect
+the custom permissions, then verify the effective policy and a small network/write probe.
 
 Protected `.git` and `.codex` paths can still require a scoped escalation under workspace-write.
 Treat those separately from network failures. Do not disable the sandbox or broaden writable
